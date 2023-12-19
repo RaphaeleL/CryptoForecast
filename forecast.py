@@ -6,7 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from hyperparameter import batch_sizes, epochs, dataset_paths, durations, choices
 from keras import Sequential
-from keras.layers import Dense, LSTM, Bidirectional, TimeDistributed
+from keras.layers import Dense, LSTM
 
 # https://de.investing.com/crypto/currencies
 
