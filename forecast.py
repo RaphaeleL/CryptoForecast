@@ -6,7 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from hyperparameter import batch_sizes, epochs, dataset_paths, durations, choices
 from keras import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, LSTM, Bidirectional, TimeDistributed
 
 # https://de.investing.com/crypto/currencies
 
@@ -31,18 +31,17 @@ def create_dataset(dataset, duration):
     """ Create dataset matrix for training and testing. """
     dataX, dataY = [], []
     for i in range(len(dataset) - duration):
-        dataX.append(dataset[i:(i + duration), 0])
+        a = dataset[i:(i + duration), 0]
+        dataX.append(a)
         dataY.append(dataset[i + duration, 0])
-    return np.array(dataX), np.array(dataY)
+    return np.array(dataX).reshape(-1, duration, 1), np.array(dataY)
 
-def build_and_compile_model(input_shape):
+def build_and_compile_model(duration, num_features):
     """ Build and compile the Keras Sequential model. """
     model = Sequential([
-        Dense(512, activation="relu", input_shape=(input_shape,)),
-        Dense(256, activation="relu"),
-        Dense(128, activation="relu"),
-        Dense(64, activation="relu"),
-        Dense(32, activation="relu"),
+        LSTM(100, activation="relu", input_shape=(duration, num_features), return_sequences=True),
+        LSTM(100, activation="relu", return_sequences=False),
+        Dense(25, activation="relu"),
         Dense(1)
     ])
     model.compile(optimizer="adam", loss="mean_squared_error")
@@ -64,7 +63,7 @@ def plot_predictions(testPredict, duration, coin, testY=None):
         plt.plot(testY[-duration:], label="Actual Price")
     else: 
         title = f"{coin} Price Prediction (real)"
-    plt.plot(testPredict[-duration:], label="Predicted Price")
+    plt.plot(testPredict[-duration + 1:], label="Predicted Price")
     plt.xlabel("Days")
     plt.ylabel("Price in $")
     plt.title(title)
@@ -78,17 +77,17 @@ def main(coin, batch_size, epochs, duration, dataset_path, real_prediction=False
     X, y = create_dataset(normalized_data, duration)
     if not real_prediction:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False)
-        model = build_and_compile_model(X_train.shape[1])
+        model = build_and_compile_model(duration, X_train.shape[2])
         model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
         testPredict = scaler.inverse_transform(model.predict(X_test))
         testY = scaler.inverse_transform(y_test.reshape(-1, 1))
         plot_predictions(testPredict, duration, coin, testY=testY)
     else: 
-        model = build_and_compile_model(X.shape[1])
+        model = build_and_compile_model(duration, X.shape[2])
         model.fit(X, y, batch_size=batch_size, epochs=epochs, verbose=1)
         testPredict = scaler.inverse_transform(model.predict(X))
         for key, value in enumerate(testPredict[-duration:]):
-            print(f"Day {key + 1}: ${value[0]:.2f}")
+            print(f"Day {key}: ${value[0]:.2f}")
         plot_predictions(testPredict, duration, coin)
 
 if __name__ == "__main__":
