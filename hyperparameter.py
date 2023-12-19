@@ -13,14 +13,13 @@ batch_sizes = {
 }
 
 epochs = {
-    "bit": 20,
-    "eth": 200,
-    "ltc": 20
+    "bit": 100,
+    "eth": 100,
+    "ltc": 100
 }
 
 durations = {
     "bit": 50,
     "eth": 50,
     "ltc": 50
-
 }
