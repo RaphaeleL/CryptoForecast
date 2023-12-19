@@ -6,19 +6,10 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
+# https://de.investing.com/crypto/currencies
 # https://github.com/ShrutiAppiah/crypto-forecasting-with-neuralnetworks/
 
-dataset_path = 'data/all_bitcoin.csv'
-batch_size = 32 
-epochs = 5 
-duration = 50
-
-def main(coin, batch_size, epochs, duration):
-
-    if coin == 'BIT': dataset_path = 'data/full_bitcoin.csv'
-    elif coin == 'ETH': dataset_path = 'data/full_eth.csv'
-    elif coin == 'LTC': dataset_path = 'data/full_litecoin.csv'
-    else: raise ValueError('Invalid crypto type, use BIT, ETH or LTC')
+def main(coin, batch_size, epochs, duration, dataset_path):
 
     # Function to create a dataset matrix
     def create_dataset(dataset, duration):
@@ -31,8 +22,9 @@ def main(coin, batch_size, epochs, duration):
 
     # Import data
     data = pd.read_csv(dataset_path)
-    #data = data.drop(['Date', 'Open', 'High', 'Low', 'Volume', 'Market Cap'], axis=1)
-    data = data.drop(['Datum', 'Eröffn.', 'Hoch', 'Tief', 'Vol.', '+/- %'], axis=1)
+
+    # Preprocess the data
+    data = data.drop(["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"], axis=1)
     data = data.replace("\.", "", regex=True)
     data = data.replace(",", ".", regex=True)
     data = data.astype(float)
@@ -52,15 +44,16 @@ def main(coin, batch_size, epochs, duration):
 
     # Build a Keras Sequential model
     model = tf.keras.Sequential([
-        tf.keras.layers.Dense(256, activation='relu', input_shape=(X_train.shape[1],)),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(512, activation="relu", input_shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(256, activation="relu"),
+        tf.keras.layers.Dense(128, activation="relu"),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(32, activation="relu"),
         tf.keras.layers.Dense(1)
     ])
 
     # Compile the model
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.compile(optimizer="adam", loss="mean_squared_error")
 
     # Train the model
     model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
@@ -93,19 +86,42 @@ def main(coin, batch_size, epochs, duration):
     plt.legend()
     plt.show()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--bit", action="store_true", default=True, help="Use Bitcoin dataset")
+    argparser.add_argument("--bit", action="store_true", default=False, help="Use Bitcoin dataset")
     argparser.add_argument("--eth", action="store_true", default=False, help="Use Ethereum dataset")
     argparser.add_argument("--ltc", action="store_true", default=False, help="Use Litecoin dataset")
-    argparser.add_argument('--batch_size', type=int, default=batch_size, help='batch size for training')
-    argparser.add_argument('--epochs', type=int, default=epochs, help='number of epochs for training')
-    argparser.add_argument('--duration', type=int, default=duration, help='Forecast Horizon')
+    argparser.add_argument("--batch_size", type=int, help="batch size for training")
+    argparser.add_argument("--epochs", type=int, help="number of epochs for training")
+    argparser.add_argument("--duration", type=int, help="Forecast Horizon")
     parse = argparser.parse_args()
 
-    if parse.eth: coin = "ETH"
-    elif parse.ltc: coin = "LTC"
-    else: coin = "BIT"
+    if parse.bit:
+        main(
+            "BIT", 
+            batch_size=parse.batch_size if parse.batch_size else 32, 
+            epochs=parse.epochs if parse.epochs else 5, 
+            duration=parse.duration if parse.duration else 50,
+            dataset_path="data/full_bitcoin.csv"
+        )
+    elif parse.eth: 
+        main(
+            "ETH", 
+            batch_size=parse.batch_size if parse.batch_size else 32, 
+            epochs=parse.epochs if parse.epochs else 200, 
+            duration=parse.duration if parse.duration else 50,
+            dataset_path="data/full_eth.csv"
+        )
+    elif parse.ltc: 
+        main(
+            "LTC", 
+            batch_size=parse.batch_size if parse.batch_size else 32, 
+            epochs=parse.epochs if parse.epochs else 20, 
+            duration=parse.duration if parse.duration else 50,
+            dataset_path="data/full_litecoin.csv"
+        )
+    else: 
+        print("No crypto type specified. Try again with --bit, --eth or --ltc")
 
-    main(coin, batch_size=parse.batch_size, epochs=parse.epochs, duration=parse.duration)
+
 
