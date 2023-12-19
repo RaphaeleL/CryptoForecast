@@ -1,127 +1,96 @@
 import argparse
-import tensorflow as tf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from hyperparameter import batch_sizes, epochs, dataset_paths, durations
+from keras import Sequential
+from keras.layers import Dense
 
 # https://de.investing.com/crypto/currencies
-# https://github.com/ShrutiAppiah/crypto-forecasting-with-neuralnetworks/
 
-def main(coin, batch_size, epochs, duration, dataset_path):
+def load_and_preprocess_data(path, to_drop=["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"]):
+    """ Load and preprocess data from the given path. """
+    try:
+        data = pd.read_csv(path)
+        data = data.drop(to_drop, axis=1)
+        data = data.replace("\.", "", regex=True).replace(",", ".", regex=True).astype(float)
+        data = data.iloc[::-1] 
+        return data
+    except FileNotFoundError:
+        print(f"File not found: {path}")
+        exit(1)
 
-    # Function to create a dataset matrix
-    def create_dataset(dataset, duration):
-        dataX, dataY = [], []
-        for i in range(len(dataset) - duration):
-            a = dataset[i:(i + duration), 0]
-            dataX.append(a)
-            dataY.append(dataset[i + duration, 0])
-        return np.array(dataX), np.array(dataY)
-
-    # Import data
-    data = pd.read_csv(dataset_path)
-
-    # Preprocess the data
-    data = data.drop(["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"], axis=1)
-    data = data.replace("\.", "", regex=True)
-    data = data.replace(",", ".", regex=True)
-    data = data.astype(float)
-
-    # Reverse 
-    data = data.iloc[::-1]
-
-    # Normalize the dataset
+def normalize_data(data):
+    """ Normalize data using Min-Max Scaler. """
     scaler = MinMaxScaler(feature_range=(0, 1))
-    data = scaler.fit_transform(data)
+    return scaler, scaler.fit_transform(data)
 
-    # Prepare the X and Y label
-    X, y = create_dataset(data, duration)
+def create_dataset(dataset, duration):
+    """ Create dataset matrix for training and testing. """
+    dataX, dataY = [], []
+    for i in range(len(dataset) - duration):
+        dataX.append(dataset[i:(i + duration), 0])
+        dataY.append(dataset[i + duration, 0])
+    return np.array(dataX), np.array(dataY)
 
-    # Take 80% of data as the training sample and 20% as testing sample
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False)
-
-    # Build a Keras Sequential model
-    model = tf.keras.Sequential([
-        tf.keras.layers.Dense(512, activation="relu", input_shape=(X_train.shape[1],)),
-        tf.keras.layers.Dense(256, activation="relu"),
-        tf.keras.layers.Dense(128, activation="relu"),
-        tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(32, activation="relu"),
-        tf.keras.layers.Dense(1)
+def build_and_compile_model(input_shape):
+    """ Build and compile the Keras Sequential model. """
+    model = Sequential([
+        Dense(512, activation="relu", input_shape=(input_shape,)),
+        Dense(256, activation="relu"),
+        Dense(128, activation="relu"),
+        Dense(64, activation="relu"),
+        Dense(32, activation="relu"),
+        Dense(1)
     ])
-
-    # Compile the model
     model.compile(optimizer="adam", loss="mean_squared_error")
+    return model
 
-    # Train the model
-    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
-
-    # Evaluate the model
-    testPredict = model.predict(X_test)
-
-    # Inverse Transform the predicted and testing data outputs to get accuracy
-    testPredict = scaler.inverse_transform(testPredict)
-    y_test_reshaped = y_test.reshape(-1, 1)
-    testY = scaler.inverse_transform(y_test_reshaped)
-
-    # Calculate the accuracy
+def calculate_accuracy(testY, testPredict):
+    """ Calculate the accuracy of the model. """
     acc = 0
     for index, element in enumerate(testY):
         acc += 1 - abs((element - testPredict[index])[0]) / element[0]
     acc /= len(testY)
+    return acc * 100
 
-    print(f"Prediction: {testPredict[-1]}")
-    print(f"Actual: {testY[-1]}")
-    print(f"Accuracy: {round(acc * 100, 2)}%")
-
-    # Plot baseline and predictions
+def plot_predictions(testY, testPredict, duration, coin):
+    """ Plot the actual vs predicted prices. """
     plt.plot(testY[-duration:], label="Actual Price")
     plt.plot(testPredict[-duration:], label="Predicted Price")
     plt.xlabel("Day")
-    plt.ylabel("Bitcoin Price")
-    plt.title(f"Price Prediction for {coin} is {round(acc * 100, 2)}% accurate")
-    plt.tight_layout()
+    plt.ylabel("Price")
+    plt.title(f"{coin} Price Prediction ({calculate_accuracy(testY, testPredict):.2f}%))")
     plt.legend()
     plt.show()
 
+def main(coin, batch_size, epochs, duration, dataset_path):
+    data = load_and_preprocess_data(dataset_path)
+    scaler, normalized_data = normalize_data(data)
+    X, y = create_dataset(normalized_data, duration)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False)
+    
+    model = build_and_compile_model(X_train.shape[1])
+    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
+
+    testPredict = scaler.inverse_transform(model.predict(X_test))
+    testY = scaler.inverse_transform(y_test.reshape(-1, 1))
+    plot_predictions(testY, testPredict, duration, coin)
+
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--bit", action="store_true", default=False, help="Use Bitcoin dataset")
-    argparser.add_argument("--eth", action="store_true", default=False, help="Use Ethereum dataset")
-    argparser.add_argument("--ltc", action="store_true", default=False, help="Use Litecoin dataset")
-    argparser.add_argument("--batch_size", type=int, help="batch size for training")
-    argparser.add_argument("--epochs", type=int, help="number of epochs for training")
+    argparser = argparse.ArgumentParser(description='Cryptocurrency Price Prediction')
+    argparser.add_argument("--coin", type=str, choices=['bit', 'eth', 'ltc'], required=True, help="Specify the cryptocurrency: bit, eth, ltc")
+    argparser.add_argument("--batch_size", type=int, help="Batch size for training")
+    argparser.add_argument("--epochs", type=int, help="Number of epochs for training")
     argparser.add_argument("--duration", type=int, help="Forecast Horizon")
-    parse = argparser.parse_args()
+    args = argparser.parse_args()
 
-    if parse.bit:
-        main(
-            "BIT", 
-            batch_size=parse.batch_size if parse.batch_size else 32, 
-            epochs=parse.epochs if parse.epochs else 5, 
-            duration=parse.duration if parse.duration else 50,
-            dataset_path="data/full_bitcoin.csv"
-        )
-    elif parse.eth: 
-        main(
-            "ETH", 
-            batch_size=parse.batch_size if parse.batch_size else 32, 
-            epochs=parse.epochs if parse.epochs else 200, 
-            duration=parse.duration if parse.duration else 50,
-            dataset_path="data/full_eth.csv"
-        )
-    elif parse.ltc: 
-        main(
-            "LTC", 
-            batch_size=parse.batch_size if parse.batch_size else 32, 
-            epochs=parse.epochs if parse.epochs else 20, 
-            duration=parse.duration if parse.duration else 50,
-            dataset_path="data/full_litecoin.csv"
-        )
-    else: 
-        print("No crypto type specified. Try again with --bit, --eth or --ltc")
-
-
-
+    main(
+        coin=args.coin.upper(), 
+        batch_size=batch_sizes[args.coin] if not args.batch_size else args.batch_size, 
+        epochs=epochs[args.coin] if not args.epochs else args.epochs, 
+        duration=durations[args.coin] if not args.duration else args.duration,
+        dataset_path=dataset_paths[args.coin]
+    )
