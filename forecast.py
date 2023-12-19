@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from hyperparameter import batch_sizes, epochs, dataset_paths, durations
+from hyperparameter import batch_sizes, epochs, dataset_paths, durations, choices
 from keras import Sequential
 from keras.layers import Dense
 
@@ -80,8 +80,8 @@ def main(coin, batch_size, epochs, duration, dataset_path):
     plot_predictions(testY, testPredict, duration, coin)
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description='Cryptocurrency Price Prediction')
-    argparser.add_argument("--coin", type=str, choices=['bit', 'eth', 'ltc'], required=True, help="Specify the cryptocurrency: bit, eth, ltc")
+    argparser = argparse.ArgumentParser(description="Cryptocurrency Price Prediction")
+    argparser.add_argument("--coin", type=str, choices=choices, required=True, help=f"Specify the cryptocurrency: {choices}")
     argparser.add_argument("--batch_size", type=int, help="Batch size for training")
     argparser.add_argument("--epochs", type=int, help="Number of epochs for training")
     argparser.add_argument("--duration", type=int, help="Forecast Horizon")
