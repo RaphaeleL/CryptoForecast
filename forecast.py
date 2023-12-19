@@ -54,30 +54,42 @@ def calculate_accuracy(testY, testPredict):
     for index, element in enumerate(testY):
         acc += 1 - abs((element - testPredict[index])[0]) / element[0]
     acc /= len(testY)
-    return acc * 100
+    return round(acc * 100, 1)
 
-def plot_predictions(testY, testPredict, duration, coin):
+def plot_predictions(testPredict, duration, coin, testY=None):
     """ Plot the actual vs predicted prices. """
-    plt.plot(testY[-duration:], label="Actual Price")
+    if testY is not None:
+        acc = calculate_accuracy(testY, testPredict)
+        title = f"{coin} Price Prediction with a {acc}% Accuracy"
+        plt.plot(testY[-duration:], label="Actual Price")
+    else: 
+        title = f"{coin} Price Prediction (real)"
     plt.plot(testPredict[-duration:], label="Predicted Price")
-    plt.xlabel("Day")
-    plt.ylabel("Price")
-    plt.title(f"{coin} Price Prediction ({calculate_accuracy(testY, testPredict):.2f}%))")
+    plt.xlabel("Days")
+    plt.ylabel("Price in $")
+    plt.title(title)
+    plt.grid(True)
     plt.legend()
     plt.show()
 
-def main(coin, batch_size, epochs, duration, dataset_path):
+def main(coin, batch_size, epochs, duration, dataset_path, real_prediction=False):
     data = load_and_preprocess_data(dataset_path)
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data, duration)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False)
-    
-    model = build_and_compile_model(X_train.shape[1])
-    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
-
-    testPredict = scaler.inverse_transform(model.predict(X_test))
-    testY = scaler.inverse_transform(y_test.reshape(-1, 1))
-    plot_predictions(testY, testPredict, duration, coin)
+    if not real_prediction:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False)
+        model = build_and_compile_model(X_train.shape[1])
+        model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
+        testPredict = scaler.inverse_transform(model.predict(X_test))
+        testY = scaler.inverse_transform(y_test.reshape(-1, 1))
+        plot_predictions(testPredict, duration, coin, testY=testY)
+    else: 
+        model = build_and_compile_model(X.shape[1])
+        model.fit(X, y, batch_size=batch_size, epochs=epochs, verbose=1)
+        testPredict = scaler.inverse_transform(model.predict(X))
+        for key, value in enumerate(testPredict[-duration:]):
+            print(f"Day {key + 1}: ${value[0]:.2f}")
+        plot_predictions(testPredict, duration, coin)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Cryptocurrency Price Prediction")
@@ -85,6 +97,7 @@ if __name__ == "__main__":
     argparser.add_argument("--batch_size", type=int, help="Batch size for training")
     argparser.add_argument("--epochs", type=int, help="Number of epochs for training")
     argparser.add_argument("--duration", type=int, help="Forecast Horizon")
+    argparser.add_argument("--real_prediction", action="store_true", help="Real prediction")
     args = argparser.parse_args()
 
     main(
@@ -92,5 +105,6 @@ if __name__ == "__main__":
         batch_size=batch_sizes[args.coin] if not args.batch_size else args.batch_size, 
         epochs=epochs[args.coin] if not args.epochs else args.epochs, 
         duration=durations[args.coin] if not args.duration else args.duration,
-        dataset_path=dataset_paths[args.coin]
+        dataset_path=dataset_paths[args.coin],
+        real_prediction=args.real_prediction
     )
