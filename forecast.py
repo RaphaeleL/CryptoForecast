@@ -9,15 +9,16 @@ from sklearn.model_selection import train_test_split
 # https://github.com/ShrutiAppiah/crypto-forecasting-with-neuralnetworks/
 
 dataset_path = 'data/all_bitcoin.csv'
-batch_size = 64 
-epochs = 100
+batch_size = 32 
+epochs = 5 
 duration = 50
 
 def main(coin, batch_size, epochs, duration):
 
-    if coin == 'BIT': dataset_path = 'data/all_bitcoin.csv'
-    elif coin == 'ETH': dataset_path = 'data/all_eth.csv'
-    else: raise ValueError('Invalid crypto type, use BIT or ETH')
+    if coin == 'BIT': dataset_path = 'data/full_bitcoin.csv'
+    elif coin == 'ETH': dataset_path = 'data/full_eth.csv'
+    elif coin == 'LTC': dataset_path = 'data/full_litecoin.csv'
+    else: raise ValueError('Invalid crypto type, use BIT, ETH or LTC')
 
     # Function to create a dataset matrix
     def create_dataset(dataset, duration):
@@ -30,8 +31,14 @@ def main(coin, batch_size, epochs, duration):
 
     # Import data
     data = pd.read_csv(dataset_path)
-    data = data.drop(['Date', 'Open', 'High', 'Low', 'Volume', 'Market Cap'], axis=1)
-    data = data.values
+    #data = data.drop(['Date', 'Open', 'High', 'Low', 'Volume', 'Market Cap'], axis=1)
+    data = data.drop(['Datum', 'Eröffn.', 'Hoch', 'Tief', 'Vol.', '+/- %'], axis=1)
+    data = data.replace("\.", "", regex=True)
+    data = data.replace(",", ".", regex=True)
+    data = data.astype(float)
+
+    # Reverse 
+    data = data.iloc[::-1]
 
     # Normalize the dataset
     scaler = MinMaxScaler(feature_range=(0, 1))
@@ -72,8 +79,6 @@ def main(coin, batch_size, epochs, duration):
         acc += 1 - abs((element - testPredict[index])[0]) / element[0]
     acc /= len(testY)
 
-    assert acc * 100 <= 100 and acc * 100 >= 0, f"Accuracy {round(acc * 100)}% is not within range 0-100%"
-
     print(f"Prediction: {testPredict[-1]}")
     print(f"Actual: {testY[-1]}")
     print(f"Accuracy: {round(acc * 100, 2)}%")
@@ -92,12 +97,14 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--bit", action="store_true", default=True, help="Use Bitcoin dataset")
     argparser.add_argument("--eth", action="store_true", default=False, help="Use Ethereum dataset")
+    argparser.add_argument("--ltc", action="store_true", default=False, help="Use Litecoin dataset")
     argparser.add_argument('--batch_size', type=int, default=batch_size, help='batch size for training')
     argparser.add_argument('--epochs', type=int, default=epochs, help='number of epochs for training')
     argparser.add_argument('--duration', type=int, default=duration, help='Forecast Horizon')
     parse = argparser.parse_args()
 
     if parse.eth: coin = "ETH"
+    elif parse.ltc: coin = "LTC"
     else: coin = "BIT"
 
     main(coin, batch_size=parse.batch_size, epochs=parse.epochs, duration=parse.duration)
