@@ -1,9 +1,12 @@
 choices = ["bit", "eth", "ltc"]
 
 dataset_paths = {
-    "bit": "data/full_bitcoin.csv",
-    "eth": "data/full_ethereum.csv",
-    "ltc": "data/full_litecoin.csv"
+    #"eth": "data/full_bitcoin.csv",
+    #"eth": "data/full_ethereum.csv",
+    #"ltc": "data/full_litecoin.csv"
+    "bit": "data/bitcoin_coinmarketcap.csv",
+    "eth": "data/ethereum_coinmarketcap.csv",
+    "ltc": "data/litecoin_coinmarketcap.csv",
 }
 
 batch_sizes = {

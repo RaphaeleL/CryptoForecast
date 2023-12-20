@@ -9,12 +9,15 @@ from keras import Sequential
 from keras.layers import Dense, LSTM
 
 # https://de.investing.com/crypto/currencies
+# https://coinmarketcap.com/coins/
 
 def load_and_preprocess_data(path, to_drop=["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"]):
     """ Load and preprocess data from the given path. """
     try:
-        data = pd.read_csv(path)
-        data = data.drop(to_drop, axis=1)
+        data = pd.read_csv(path, sep=";")
+        for column in to_drop:
+            if column in data.columns:
+                data = data.drop(column, axis=1)
         data = data.replace("\.", "", regex=True).replace(",", ".", regex=True).astype(float)
         data = data.iloc[::-1] 
         return data
@@ -72,7 +75,7 @@ def plot_predictions(testPredict, duration, coin, testY=None):
     plt.show()
 
 def main(coin, batch_size, epochs, duration, dataset_path, real_prediction=False):
-    data = load_and_preprocess_data(dataset_path)
+    data = load_and_preprocess_data(dataset_path, to_drop=["timeOpen", "timeClose", "timeHigh", "timeLow", "name", "open", "high", "low", "volume", "marketCap", "timestamp"])
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data, duration)
     if not real_prediction:
