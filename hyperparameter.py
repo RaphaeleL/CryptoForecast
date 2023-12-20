@@ -18,21 +18,3 @@ dataset_paths = {
         "yahoo": "data/litecoin_yahoo.csv"
     }
 }
-
-batch_sizes = {
-    "bit": 32,
-    "eth": 32,
-    "ltc": 32
-}
-
-epochs = {
-    "bit": 100,
-    "eth": 100,
-    "ltc": 100
-}
-
-durations = {
-    "bit": 50,
-    "eth": 50,
-    "ltc": 50
-}
