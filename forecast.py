@@ -21,7 +21,7 @@ def load_and_preprocess_data(path, dataset_name):
             if column in data.columns:
                 data = data.drop(column, axis=1)
         data = data.replace("\.", "", regex=True).replace(",", ".", regex=True).astype(float)
-        data = data.iloc[::-1] 
+        data = data.iloc[::-1].reset_index(drop=True)
         return data
     except FileNotFoundError:
         print(f"File not found: {path}")
@@ -44,8 +44,10 @@ def create_dataset(dataset, duration):
 def build_and_compile_model(duration, num_features):
     """ Build and compile the Keras Sequential model. """
     model = Sequential([
-        LSTM(100, activation="relu", input_shape=(duration, num_features), return_sequences=True),
-        LSTM(100, activation="relu", return_sequences=False),
+        LSTM(250, activation="relu", input_shape=(duration, num_features), return_sequences=True),
+        LSTM(250, activation="relu", return_sequences=True),
+        LSTM(250, activation="relu", return_sequences=True),
+        LSTM(250, activation="relu", return_sequences=False),
         Dense(25, activation="relu"),
         Dense(1)
     ])
@@ -56,7 +58,7 @@ def plot_predictions(testPredict, coin, dataset_name, testY=None, ):
     """ Plot the actual vs predicted prices. """
     if testY is not None: plt.plot(testY, label="Actual Price")
     title = f"{coin} Price Prediction \n{dataset_name}"
-    plt.plot(testPredict, label="Predicted Price")
+    plt.plot(testPredict[::-1], label="Predicted Price")
     plt.xlabel("Days")
     plt.ylabel("Price in $")
     plt.title(title)
