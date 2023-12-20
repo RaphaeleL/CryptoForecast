@@ -8,13 +8,13 @@ from hyperparameter import batch_sizes, epochs, dataset_paths, durations, choice
 from keras import Sequential
 from keras.layers import Dense, LSTM
 
-def load_and_preprocess_data(path, dataset_name):
+def load_and_preprocess_data(path):
     """ Load and preprocess data from the given path. """
     try:
-        if dataset_name == "investing":
+        if "investing" in path:
             to_drop = ["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"]
             data = pd.read_csv(path)
-        elif dataset_name == "coinmarketcap":
+        elif "coinmarketcap" in path:
             to_drop = ["timeOpen", "timeClose", "timeHigh", "timeLow", "name", "open", "high", "low", "volume", "marketCap", "timestamp"]
             data = pd.read_csv(path, sep=";")
         for column in to_drop:
@@ -73,7 +73,7 @@ def print_predictions(testPredict, coin, dataset_name):
         print(f"Day {key}: ${value[0]:.2f}")
 
 def main(coin, batch_size, epochs, duration, dataset_path, dataset_name, real_pred=False, print_pred=False):
-    data = load_and_preprocess_data(dataset_path, dataset_name)
+    data = load_and_preprocess_data(dataset_path)
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data, duration)
     if not real_pred:
