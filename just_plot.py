@@ -14,9 +14,9 @@ def plot_predictions(testPredict, testY=None):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Data Plotter")
-    argparser.add_argument("--dataset_name", type=str, required=True, help=f"Specify the dataset: {choices}")
+    argparser.add_argument("--dataset", type=str, required=True, help=f"Specify the dataset: {choices}")
     args = argparser.parse_args()
 
-    path = args.dataset_name if args.dataset_name else "data/ethereum_coinmarketcap_10-19_Dez_2023.csv"
-    data = load_and_preprocess_data(path)
+    path = args.dataset if args.dataset else "data/ethereum_coinmarketcap_10-19_Dez_2023.csv"
+    data = load_and_preprocess_data(path).iloc[::-1].reset_index(drop=True)
     plot_predictions(data)
