@@ -8,13 +8,15 @@ from hyperparameter import batch_sizes, epochs, dataset_paths, durations, choice
 from keras import Sequential
 from keras.layers import Dense, LSTM
 
-# https://de.investing.com/crypto/currencies
-# https://coinmarketcap.com/coins/
-
-def load_and_preprocess_data(path, to_drop=["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"]):
+def load_and_preprocess_data(path, dataset_name):
     """ Load and preprocess data from the given path. """
     try:
-        data = pd.read_csv(path, sep=";")
+        if dataset_name == "investing":
+            to_drop = ["Datum", "Eröffn.", "Hoch", "Tief", "Vol.", "+/- %"]
+            data = pd.read_csv(path)
+        elif dataset_name == "coinmarketcap":
+            to_drop = ["timeOpen", "timeClose", "timeHigh", "timeLow", "name", "open", "high", "low", "volume", "marketCap", "timestamp"]
+            data = pd.read_csv(path, sep=";")
         for column in to_drop:
             if column in data.columns:
                 data = data.drop(column, axis=1)
@@ -50,18 +52,10 @@ def build_and_compile_model(duration, num_features):
     model.compile(optimizer="adam", loss="mean_squared_error")
     return model
 
-def calculate_accuracy(testY, testPredict):
-    """ Calculate the accuracy of the model. """
-    acc = 0
-    for index, element in enumerate(testY):
-        acc += 1 - abs((element - testPredict[index])[0]) / element[0]
-    acc /= len(testY)
-    return round(acc * 100, 1)
-
 def plot_predictions(testPredict, coin, dataset_name, testY=None, ):
     """ Plot the actual vs predicted prices. """
     if testY is not None: plt.plot(testY, label="Actual Price")
-    title = f"{coin} Price Prediction (real) \n{dataset_name}"
+    title = f"{coin} Price Prediction \n{dataset_name}"
     plt.plot(testPredict, label="Predicted Price")
     plt.xlabel("Days")
     plt.ylabel("Price in $")
@@ -77,7 +71,7 @@ def print_predictions(testPredict, coin, dataset_name):
         print(f"Day {key}: ${value[0]:.2f}")
 
 def main(coin, batch_size, epochs, duration, dataset_path, dataset_name, real_pred=False, print_pred=False):
-    data = load_and_preprocess_data(dataset_path, to_drop=["timeOpen", "timeClose", "timeHigh", "timeLow", "name", "open", "high", "low", "volume", "marketCap", "timestamp"])
+    data = load_and_preprocess_data(dataset_path, dataset_name)
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data, duration)
     if not real_pred:
