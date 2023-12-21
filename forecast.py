@@ -111,7 +111,7 @@ def main(coin, batch_size, epochs, dataset_path, dataset_name, real_pred, revers
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Cryptocurrency Price Prediction")
     argparser.add_argument("--coin", type=str, default="eth", choices=choices)
-    argparser.add_argument("--dataset", type=str, default="yahoo", choices=dataset_names)
+    argparser.add_argument("--dataset", type=str, default="gecko", choices=dataset_names)
     argparser.add_argument("--batch_size", type=int, default=32)
     argparser.add_argument("--epochs", type=int, default=100)
     argparser.add_argument("--prediction", type=int, default=-1)
