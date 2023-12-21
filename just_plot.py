@@ -18,5 +18,5 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     path = args.dataset if args.dataset else "data/ethereum_coinmarketcap_10-19_Dez_2023.csv"
-    data = load_and_preprocess_data(path).iloc[::-1].reset_index(drop=True)
+    data = load_and_preprocess_data(path)
     plot_predictions(data)
