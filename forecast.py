@@ -39,14 +39,11 @@ def main(
     prediction,
     agents,
     folds,
-    plot_coin,
     reverse,
     all_agent_test_predictions,
     all_agent_test_actuals,
 ):
     data = load_and_preprocess_data(coin, reverse)
-    if plot_coin:
-        plot(coin, data, exit_after=True)
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data)
 
@@ -103,6 +100,11 @@ if __name__ == "__main__":
     argparser.add_argument("--reverse", action="store_true")
     args = argparser.parse_args()
 
+    if args.plot_coin:
+        data = load_and_preprocess_data(args.coin, args.reverse)
+        plot(args.coin, data, exit_after=True)
+        exit()
+
     all_agent_test_predictions = []
     all_agent_test_actuals = []
     threads = []
@@ -117,7 +119,6 @@ if __name__ == "__main__":
                 args.prediction,
                 args.agents,
                 args.folds,
-                args.plot_coin,
                 args.reverse,
                 all_agent_test_predictions,
                 all_agent_test_actuals,
