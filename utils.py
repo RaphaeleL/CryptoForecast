@@ -131,7 +131,7 @@ def train(X, y, X_train, y_train, batch_size, epochs):
         batch_size=batch_size,
         epochs=epochs,
         verbose=0,
-        callbacks=[TqdmCallback(verbose=0)],
+        # callbacks=[TqdmCallback(verbose=0)],
     )
     return model
 

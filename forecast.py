@@ -2,6 +2,8 @@ import threading
 import pandas as pd
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
+import warnings
+warnings.filterwarnings('ignore')
 
 from utils import (
     evaluate_agent_performance,
@@ -26,21 +28,16 @@ def map_predictions_to_dates(start_date, predictions):
     date_predictions = pd.DataFrame(predictions, index=dates, columns=['Prediction'])
     return date_predictions
 
-def crypto_forecast(coin, batch_size, epochs, agent, agents, folds, test_pred, test_actu, real_pred, prediction_days=1):
+def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, prediction_days=1):
     """Forecast cryptocurrency prices."""
-    data = load_and_preprocess_data(coin)
-    scaler, normalized_data = normalize_data(data)
-    X, y = create_dataset(normalized_data)
-    kf = KFold(n_splits=folds, shuffle=False)
-
     predictions = []
     actuals = []
     real_predictions = []
 
     for index, (train_index, test_index) in enumerate(kf.split(X)):
-        print_colored(f"Training Agent {agent+1}/{agents} for Fold {index+1}/{folds}", "green")
+        print_colored(f"Training Agent {agent+1}/{args.agents} for Fold {index+1}/{args.folds}", "green")
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
-        model = train(X, y, X_train, y_train, batch_size, epochs)
+        model = train(X, y, X_train, y_train, args.batch_size, args.epochs)
         prediction = scaler.inverse_transform(model.predict(X_test))
         predictions.extend(prediction)
         actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
@@ -50,9 +47,9 @@ def crypto_forecast(coin, batch_size, epochs, agent, agents, folds, test_pred, t
     test_actu.append(pd.DataFrame(scaler.inverse_transform(y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
 
     for index, (train_index, _) in enumerate(kf.split(X)):
-        print_colored(f"Training Agent {agent+1}/{agents} for Fold {index+1}/{folds}", "green")
+        print_colored(f"Training Agent {agent+1}/{args.agents} for Fold {index+1}/{args.folds}", "green")
         X_train, y_train = split(X, y, train_index) 
-        model = train(X, y, X_train, y_train, batch_size, epochs)
+        model = train(X, y, X_train, y_train, args.batch_size, args.epochs)
         prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):]))
         real_predictions.extend(prediction)
 
@@ -73,16 +70,14 @@ def crypto_forecast(coin, batch_size, epochs, agent, agents, folds, test_pred, t
 
     return test_pred, test_actu, real_pred
 
-def main():
+def main(data, scaler, X, y, kf, args):
     # TODO: print a list of agents and folds with done, in progress and not started
-    args = argument_parser()
     threads, test_pred, test_actu, real_pred = [], [], [], []
 
     for agent in range(args.agents):
         thread = threading.Thread(
             target=crypto_forecast,
-            args=(args.coin, args.batch_size, args.epochs, agent, args.agents, 
-                  args.folds, test_pred, test_actu, real_pred, args.prediction),
+            args=(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, args.prediction),
         )
         threads.append(thread)
         thread.start()
@@ -92,15 +87,23 @@ def main():
 
     performance_data = evaluate_agent_performance(test_actu, test_pred)
     best_agent = select_best_agent(performance_data)
-    
-    if need_retraining(best_agent, performance_data):
-        # TODO: We need to retrain the model.
-        print_colored("Need to Train the Model again...", "red")
 
-    print_data(real_pred)
+    if need_retraining(best_agent, performance_data):
+        print_colored(f"Need to Train the Model again...", "red")
+        print_colored(f"  > Best Agent: {best_agent+1}", "red")
+        print_colored(f"  > Performance: {round(performance_data[best_agent], 2)}", "red")
+        # main(data, scaler, X, y, kf, args)
+
+    # print_data(real_pred)
     if args.show_all:
         plot_all(args.coin, best_agent, real_pred)
     plot(args.coin, best_agent, test_pred[best_agent], test_actu[best_agent], real_pred[best_agent])
 
 if __name__ == "__main__":
-    main()
+    args = argument_parser()
+    data = load_and_preprocess_data(args.coin)
+    scaler, normalized_data = normalize_data(data)
+    X, y = create_dataset(normalized_data)
+    kf = KFold(n_splits=args.folds, shuffle=False)
+
+    main(data, scaler, X, y, kf, args)
