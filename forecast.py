@@ -8,12 +8,6 @@ import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  
 
-def map_predictions_to_dates(start_date, predictions):
-    """Map predictions to dates."""
-    dates = pd.date_range(start_date, periods=len(predictions), freq='H')
-    date_predictions = pd.DataFrame(predictions, index=dates, columns=['Prediction'])
-    return date_predictions
-
 def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, prediction_days=1):
     """Forecast cryptocurrency prices."""
     predictions = []
@@ -49,7 +43,6 @@ def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, r
     return test_pred, test_actu, real_pred
 
 def main(data, scaler, X, y, kf, args):
-
     threads, test_pred, test_actu, real_pred = [], [], [], []
 
     for agent in range(args.agents):
@@ -69,7 +62,7 @@ def main(data, scaler, X, y, kf, args):
 
     if args.show_all:
         plot_all(args.coin, best_agent, real_pred)
-    plot(args.coin, best_agent, test_pred[best_agent], test_actu[best_agent], real_pred[best_agent])
+    plot(args.coin, best_agent, test_pred[best_agent], test_actu[best_agent], real_pred[best_agent], args.prediction)
 
 if __name__ == "__main__":
     args = argument_parser()

@@ -15,16 +15,16 @@ from keras.optimizers.legacy import Adam
 def load_and_preprocess_data(ticker):
     """Load and preprocess data from the given path."""
     data = yf.download(ticker)
-    data = data[['Close']]
+    data = data[["Close"]]
     data.reset_index(inplace=True)
-    data.set_index('Date', inplace=True)
+    data.set_index("Date", inplace=True)
     return stretch_data(data)
 
 def stretch_data(data, stretch_factor=24):
     """Stretch daily data to a specified hourly interval."""
     data.index = pd.to_datetime(data.index)
-    interval = f'{int(24 / stretch_factor)}H'
-    stretched = data.resample(interval).interpolate(method='time')
+    interval = f"{int(24 / stretch_factor)}H"
+    stretched = data.resample(interval).interpolate(method="time")
     return stretched
 
 def normalize_data(data):
@@ -52,44 +52,45 @@ def plot_all(coin, best_agent, val):
         if i == best_agent: title = f"{coin} Price Prediction by BEST Agent {i+1}"
         else: title = f"{coin} Price Prediction by Agent {i+1}"
         ax = plt.subplot(rows, cols, i + 1)
-        ax.plot(val[i].index, val[i]['Prediction'], label=f"Agent {i+1} Real Predictions")
+        ax.plot(val[i].index, val[i]["Prediction"], label=f"Agent {i+1} Real Predictions")
         ax.set_title(title)
         ax.set_xlabel("Days")
         ax.set_ylabel("Price in $")
         ax.legend()
         ax.grid(True)
         ax.xaxis_date()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=30)) 
-        plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
     # plt.savefig(f"images/{coin}_{pd.to_datetime("today").strftime("%Y-%m-%d")}.png")
     plt.tight_layout()
     plt.show()
 
-def plot(coin, agent, train, test, val):
+def plot(coin, agent, train, test, val, prediction):
     """Plot predictions and actuals for the best agents in a single GUI window."""
     length = 2
     _, axs = plt.subplots(length, 1, figsize=(15, 10))
     
-    axs[0].plot(train.index, train['Prediction'], label=f"Train Predictions")
-    axs[0].plot(test.index, test['Actual'], label=f"Test Actuals", alpha=0.7)
+    axs[0].plot(train.index, train["Prediction"], label=f"Train Predictions")
+    axs[0].plot(test.index, test["Actual"], label=f"Test Actuals", alpha=0.7)
     axs[0].set_title(f"{coin} Train/Test by Agent {agent+1}")
     axs[0].set_xlabel("Days")
-    axs[0].set_ylabel("Price in $")
+    axs[0].set_ylabel("Price")
     axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=90))
 
-    axs[1].plot(val.index, val['Prediction'], label=f"Future Predictions")
+    pre_days = prediction * 12 
+    axs[1].plot(test.tail(pre_days).index, test['Actual'][-pre_days:], label=f"Test Actuals", alpha=0.7)
     axs[1].set_title(f"{coin} Future Predictions by Agent {agent+1}")
     axs[1].set_xlabel("Days")
-    axs[1].set_ylabel("Price in $")
+    axs[1].set_ylabel("Price")
     axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=1))
 
     for i in range(length):
         axs[i].legend()
         axs[i].grid(True)
         axs[i].xaxis_date()
-        axs[i].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d - %H:%M'))
-        plt.setp(axs[i].get_xticklabels(), rotation=45, ha='right')
+        axs[i].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d - %H:%M"))
+        plt.setp(axs[i].get_xticklabels(), rotation=45, ha="right")
 
     plt.tight_layout()
     plt.show()
@@ -136,13 +137,13 @@ def train(X, X_train, y_train, batch_size, epochs):
 def argument_parser():
     """Parse command line arguments."""
     argparser = argparse.ArgumentParser(description="Cryptocurrency Price Prediction")
-    argparser.add_argument("--coin", type=str, default="ETH-EUR")
+    argparser.add_argument("--coin", type=str, default="LTC-EUR")
     argparser.add_argument("--batch_size", type=int, default=32)
-    argparser.add_argument("--epochs", type=int, default=10)
+    argparser.add_argument("--epochs", type=int, default=5)
     argparser.add_argument("--agents", type=int, default=6)
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
-    argparser.add_argument("--show_all", action='store_true')
+    argparser.add_argument("--show_all", action="store_true")
     args = argparser.parse_args()
     return args
 
@@ -182,22 +183,25 @@ def select_best_agent(performance_data):
     return best_agent_index
 
 def need_retraining(best_agent, performance_data, threshold=0.1):
-    """Check if the best agent's performance is above a certain threshold, indicating a need for retraining."""
+    """Check if the best agent"s performance is above a certain threshold, indicating a need for retraining."""
     return performance_data[best_agent] > threshold
 
 def evaluate_agent_performance(test_actu, test_pred):
     """Evaluate the performance of each agent using Mean Absolute Error."""
     performance_data = []
     for actual, prediction in zip(test_actu, test_pred):
-        mae = mean_absolute_error(actual['Actual'], prediction['Prediction'])
+        mae = mean_absolute_error(actual["Actual"], prediction["Prediction"])
         performance_data.append(mae)
     return performance_data
 
 def print_agent_performance_overview(agents, performance_data, best_agent):
-    color = {x : "green" for x in range(agents)}
+    color = {x : "red" for x in range(agents)}
     for agent in range(agents):
-        if need_retraining(agent, performance_data, 1.0) and agent != best_agent:
+        if need_retraining(agent, performance_data, 2.0):
             # TODO: Retrain
-            color[agent] = "red"
-        best = "***" if agent == best_agent else ""
-        print_colored(f"> Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f} {best}", color[agent])
+            best = "*"
+        else: 
+            best = " "
+        if agent == best_agent:
+            color[agent] = "green"
+        print_colored(f"{best} Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f}", color[agent])
