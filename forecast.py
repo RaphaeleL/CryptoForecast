@@ -17,9 +17,10 @@ def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, r
     # TODO: Improve Prediction Quality
 
     for index, (train_index, test_index) in enumerate(kf.split(X)):
-        print(f"Training Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
+        if args.debug > 0:
+            print(f"Training Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
-        model = train(X, X_train, y_train, args.batch_size, args.epochs)
+        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
         predictions.extend(prediction)
         actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
@@ -29,9 +30,10 @@ def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, r
     test_actu.append(pd.DataFrame(scaler.inverse_transform(y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
 
     for index, (train_index, _) in enumerate(kf.split(X)):
-        print(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
+        if args.debug > 0:
+            print(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
         X_train, y_train = split(X, y, train_index) 
-        model = train(X, X_train, y_train, args.batch_size, args.epochs)
+        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
         prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):], verbose=0))
         real_predictions.extend(prediction)
 
@@ -58,11 +60,28 @@ def main(data, scaler, X, y, kf, args):
 
     performance_data = evaluate_agent_performance(test_actu, test_pred)
     best_agent = select_best_agent(performance_data)
-    print_agent_performance_overview(args.agents, performance_data, best_agent)
+    if args.debug > 0: 
+        print_agent_performance_overview(args.agents, performance_data, best_agent)
 
     if args.show_all:
         plot_all(args.coin, best_agent, real_pred)
-    plot(args.coin, best_agent, test_pred[best_agent], test_actu[best_agent], real_pred[best_agent], args.prediction)
+
+    duration = args.prediction * 12
+    first_entry = real_pred[best_agent].tail(duration).iloc[0]
+    last_entry = real_pred[best_agent].tail(duration).iloc[-1]
+    first_entry_value = first_entry['Prediction']
+    last_entry_value = last_entry['Prediction']
+    percentage_change = round(((last_entry_value - first_entry_value) / first_entry_value) * 100, 2)
+    trend = "rising" if percentage_change > 0 else "falling"
+    color = "green" if percentage_change > 0 else "red"
+
+    print_colored(f"{args.coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
+    if args.debug > 0:
+        print_colored(f" > First Prediction {first_entry_value}", color)
+        print_colored(f" > Last Prediction  {last_entry_value}", color)
+
+    if args.plot or args.show_all or args.debug > 0:
+        plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
 
 if __name__ == "__main__":
     args = argument_parser()

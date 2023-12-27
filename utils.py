@@ -12,6 +12,8 @@ from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
 from keras.optimizers.legacy import Adam
 
+from tqdm.keras import TqdmCallback
+
 def load_and_preprocess_data(ticker):
     """Load and preprocess data from the given path."""
     data = yf.download(ticker)
@@ -70,6 +72,8 @@ def plot(coin, agent, train, test, val, prediction):
     """Plot predictions and actuals for the best agents in a single GUI window."""
     length = 2
     _, axs = plt.subplots(length, 1, figsize=(15, 10))
+
+    train, test, val = train[agent], test[agent], val[agent]
     
     axs[0].plot(train.index, train["Prediction"], label=f"Train Predictions")
     axs[0].plot(test.index, test["Actual"], label=f"Test Actuals", alpha=0.7)
@@ -79,7 +83,7 @@ def plot(coin, agent, train, test, val, prediction):
     axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=90))
 
     pre_days = prediction * 12 
-    axs[1].plot(test.tail(pre_days).index, test['Actual'][-pre_days:], label=f"Test Actuals", alpha=0.7)
+    axs[1].plot(val.tail(pre_days).index, val['Prediction'][-pre_days:], label=f"Actual Prediction", alpha=0.7)
     axs[1].set_title(f"{coin} Future Predictions by Agent {agent+1}")
     axs[1].set_xlabel("Days")
     axs[1].set_ylabel("Price")
@@ -110,9 +114,9 @@ def build_and_compile_model(num_features):
     model = Sequential(
         [
             Conv1D(64, 1, activation="relu", input_shape=(1, num_features)),
-            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
-            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
-            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
             Dropout(0.2),
             Flatten(),
             Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
@@ -122,15 +126,17 @@ def build_and_compile_model(num_features):
     model.compile(optimizer=Adam(0.001), loss="mse")
     return model
 
-def train(X, X_train, y_train, batch_size, epochs):
+def train(X, X_train, y_train, batch_size, epochs, debug_level):
     """Train the model."""
+    callbacks = [TqdmCallback(verbose=debug_level)] if debug_level > 0 else []
     model = build_and_compile_model(X.shape[2])
     model.fit(
         X_train,
         y_train,
         batch_size=batch_size,
         epochs=epochs,
-        verbose=0,
+        verbose=debug_level,
+        callbacks=callbacks,
     )
     return model
 
@@ -144,6 +150,8 @@ def argument_parser():
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
     argparser.add_argument("--show_all", action="store_true")
+    argparser.add_argument("--plot", action="store_true")
+    argparser.add_argument("--debug", type=int, default=0)
     args = argparser.parse_args()
     return args
 

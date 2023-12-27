@@ -15,10 +15,8 @@ This Python script is designed for predicting cryptocurrency prices using a deep
 Run the script from the command line. You can specify the cryptocurrency, batch size, number of epochs, and the prediction length (in days), but you should be fine with using the defaults and just run `python3 forecast.py`. Nevertheless, an example:
 
 ```bash 
-python forecast.py --coin ETH-USD --batch_size 32 --epochs 20 --agents 4 --folds 6 --prediction 7 
+python forecast.py --coin ETH-USD --batch_size 32 --epochs 20 --agents 4 --folds 6 --prediction 7 --plot
 ```
-
-This command will predict the price of ETH for the next 7 days by 4 Agents, but it will just show you the best Agent. If you want to see all Agent's Prediction, just append `--show_all`.
 
 The Code will produce a Performance Table at the end of Forecasting. The smallest Performance Score is the best, but if a Line is starting with a `*`, the Agent was Performing so bad, that the Code wants to Retrain it.
 
@@ -31,6 +29,8 @@ The Code will produce a Performance Table at the end of Forecasting. The smalles
 - `--folds`: Number of Folds for the KFold (default: 5).
 - `--prediction`: Number of days to predict. Use -1 for full test data prediction (default: -1).
 - `--show_all`: Show's the Result of all Agents. 
+- `--plot`: Plot the Predictions.
+- `--debug`: Level of Debugging (default: 0).
 
 ## Model Architecture
 
