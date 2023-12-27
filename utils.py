@@ -111,6 +111,7 @@ def build_and_compile_model(num_features):
             Conv1D(64, 1, activation="relu", input_shape=(1, num_features)),
             Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
             Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
             Dropout(0.2),
             Flatten(),
             Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
@@ -137,9 +138,9 @@ def argument_parser():
     argparser = argparse.ArgumentParser(description="Cryptocurrency Price Prediction")
     argparser.add_argument("--coin", type=str, default="ETH-EUR")
     argparser.add_argument("--batch_size", type=int, default=32)
-    argparser.add_argument("--epochs", type=int, default=20)
-    argparser.add_argument("--agents", type=int, default=4)
-    argparser.add_argument("--folds", type=int, default=5)
+    argparser.add_argument("--epochs", type=int, default=5)
+    argparser.add_argument("--agents", type=int, default=5)
+    argparser.add_argument("--folds", type=int, default=6)
     argparser.add_argument("--prediction", type=int, default=7)
     argparser.add_argument("--show_all", action='store_true')
     args = argparser.parse_args()
@@ -192,12 +193,11 @@ def evaluate_agent_performance(test_actu, test_pred):
         performance_data.append(mae)
     return performance_data
 
-
 def print_agent_performance_overview(agents, performance_data, best_agent):
     color = {x : "green" for x in range(agents)}
     for agent in range(agents):
         if need_retraining(agent, performance_data, 1.0) and agent != best_agent:
             # TODO: Retrain
             color[agent] = "red"
-        best = "Best Agent" if agent == best_agent else ""
+        best = "***" if agent == best_agent else ""
         print_colored(f"> Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f} {best}", color[agent])
