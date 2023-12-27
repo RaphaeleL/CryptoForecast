@@ -20,6 +20,8 @@ python forecast.py --coin ETH-USD --batch_size 32 --epochs 20 --agents 4 --folds
 
 This command will predict the price of ETH for the next 7 days by 4 Agents, but it will just show you the best Agent. If you want to see all Agent's Prediction, just append `--show_all`.
 
+The Code will produce a Performance Table at the end of Forecasting. The smallest Performance Score is the best, but if a Line is starting with a `*`, the Agent was Performing so bad, that the Code wants to Retrain it.
+
 ### Parameters
 
 - `--coin`: Cryptocurrency symbol (default: eth for Ethereum).
