@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from matplotlib import dates as mdates
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error
-
 from keras import Sequential
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
@@ -167,14 +166,16 @@ def print_colored(to_print, color, end="\n"):
     }
     print(f"{colors.get(color, '')}{to_print}{colors['end']}", end=end)
 
-def print_data(data):
+def print_data(data, best_agent):
     """Print the dataset."""
     for agent in range(len(data)):
-        border = "*****************************************************"
-        print_colored(border, "cyan")
-        print_colored(f"***** Agent {agent+1}", "cyan")
-        print_colored(data[agent], "cyan")
-        print_colored(border, "cyan")
+        color = "green" if agent == best_agent else "red"
+        border = "*" * 31 
+        end_border = "*" * 17 
+        print_colored(border, color)
+        print_colored(f"***** Agent {agent+1} {end_border}", color)
+        print_colored(border, color)
+        print(data[agent])
 
 def select_best_agent(performance_data):
     """Select the best agent based on performance data."""
