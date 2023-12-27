@@ -1,26 +1,12 @@
 import threading, os, warnings
 import pandas as pd
 from sklearn.model_selection import KFold
+from utils import *
 
 warnings.filterwarnings('ignore')
 import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  
-
-from utils import (
-    evaluate_agent_performance,
-    select_best_agent,
-    need_retraining,
-    load_and_preprocess_data,
-    normalize_data,
-    create_dataset,
-    plot, 
-    plot_all,
-    split, 
-    train,
-    argument_parser,
-    print_colored,
-)
 
 def map_predictions_to_dates(start_date, predictions):
     """Map predictions to dates."""
@@ -37,9 +23,9 @@ def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, r
     # TODO: Improve Prediction Quality
 
     for index, (train_index, test_index) in enumerate(kf.split(X)):
-        print(f"Training Agent {agent+1}/{args.agents} with Fold {index+1}/{args.folds}")
+        print(f"Training Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
-        model = train(X, y, X_train, y_train, args.batch_size, args.epochs)
+        model = train(X, X_train, y_train, args.batch_size, args.epochs)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
         predictions.extend(prediction)
         actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
@@ -49,9 +35,9 @@ def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, r
     test_actu.append(pd.DataFrame(scaler.inverse_transform(y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
 
     for index, (train_index, _) in enumerate(kf.split(X)):
-        print(f"Predict Future for Agent {agent+1}/{args.agents} with Fold {index+1}/{args.folds}")
+        print(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
         X_train, y_train = split(X, y, train_index) 
-        model = train(X, y, X_train, y_train, args.batch_size, args.epochs)
+        model = train(X, X_train, y_train, args.batch_size, args.epochs)
         prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):], verbose=0))
         real_predictions.extend(prediction)
 
@@ -79,13 +65,7 @@ def main(data, scaler, X, y, kf, args):
 
     performance_data = evaluate_agent_performance(test_actu, test_pred)
     best_agent = select_best_agent(performance_data)
-
-    if need_retraining(best_agent, performance_data):
-        print_colored(f"Need to Train the Model again...", "red")
-        print_colored(f"  > Best Agent: {best_agent+1}", "red")
-        print_colored(f"  > Performance: {round(performance_data[best_agent], 2)}", "red")
-        # TODO: Retrain the best agent
-        # main(data, scaler, X, y, kf, args)
+    print_agent_performance_overview(args.agents, performance_data, best_agent)
 
     if args.show_all:
         plot_all(args.coin, best_agent, real_pred)

@@ -11,7 +11,6 @@ from keras import Sequential
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
 from keras.optimizers.legacy import Adam
-from tqdm.keras import TqdmCallback
 
 def load_and_preprocess_data(ticker):
     """Load and preprocess data from the given path."""
@@ -121,7 +120,7 @@ def build_and_compile_model(num_features):
     model.compile(optimizer=Adam(0.001), loss="mse")
     return model
 
-def train(X, y, X_train, y_train, batch_size, epochs):
+def train(X, X_train, y_train, batch_size, epochs):
     """Train the model."""
     model = build_and_compile_model(X.shape[2])
     model.fit(
@@ -130,7 +129,6 @@ def train(X, y, X_train, y_train, batch_size, epochs):
         batch_size=batch_size,
         epochs=epochs,
         verbose=0,
-        # callbacks=[TqdmCallback(verbose=0)],
     )
     return model
 
@@ -193,3 +191,13 @@ def evaluate_agent_performance(test_actu, test_pred):
         mae = mean_absolute_error(actual['Actual'], prediction['Prediction'])
         performance_data.append(mae)
     return performance_data
+
+
+def print_agent_performance_overview(agents, performance_data, best_agent):
+    color = {x : "green" for x in range(agents)}
+    for agent in range(agents):
+        if need_retraining(agent, performance_data, 1.0) and agent != best_agent:
+            # TODO: Retrain
+            color[agent] = "red"
+        best = "Best Agent" if agent == best_agent else ""
+        print_colored(f"> Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f} {best}", color[agent])
