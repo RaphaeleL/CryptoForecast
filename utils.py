@@ -135,7 +135,7 @@ def train(X, X_train, y_train, batch_size, epochs, debug_level):
         y_train,
         batch_size=batch_size,
         epochs=epochs,
-        verbose=debug_level,
+        verbose=0,
         callbacks=callbacks,
     )
     return model
@@ -151,6 +151,7 @@ def argument_parser():
     argparser.add_argument("--prediction", type=int, default=7)
     argparser.add_argument("--show_all", action="store_true")
     argparser.add_argument("--plot", action="store_true")
+    argparser.add_argument("--auto", action="store_true")
     argparser.add_argument("--debug", type=int, default=0)
     args = argparser.parse_args()
     return args

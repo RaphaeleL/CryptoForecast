@@ -44,7 +44,7 @@ def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, r
 
     return test_pred, test_actu, real_pred
 
-def main(data, scaler, X, y, kf, args):
+def main(coin, data, scaler, X, y, kf, args):
     threads, test_pred, test_actu, real_pred = [], [], [], []
 
     for agent in range(args.agents):
@@ -64,7 +64,7 @@ def main(data, scaler, X, y, kf, args):
         print_agent_performance_overview(args.agents, performance_data, best_agent)
 
     if args.show_all:
-        plot_all(args.coin, best_agent, real_pred)
+        plot_all(coin, best_agent, real_pred)
 
     duration = args.prediction * 12
     first_entry = real_pred[best_agent].tail(duration).iloc[0]
@@ -75,19 +75,27 @@ def main(data, scaler, X, y, kf, args):
     trend = "rising" if percentage_change > 0 else "falling"
     color = "green" if percentage_change > 0 else "red"
 
-    print_colored(f"{args.coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
-    if args.debug > 0:
+    print_colored(f"{coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
+    if args.debug > 1:
         print_colored(f" > First Prediction {first_entry_value}", color)
         print_colored(f" > Last Prediction  {last_entry_value}", color)
-
-    if args.plot or args.show_all or args.debug > 0:
-        plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
+        if args.plot or args.show_all:
+            plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
 
 if __name__ == "__main__":
     args = argument_parser()
-    data = load_and_preprocess_data(args.coin)
-    scaler, normalized_data = normalize_data(data)
-    X, y = create_dataset(normalized_data)
-    kf = KFold(n_splits=args.folds, shuffle=False)
+    if args.auto: 
+        for coin in ["LTC-EUR", "BTC-EUR", "ETH-EUR"]:
+            data = load_and_preprocess_data(coin)
+            scaler, normalized_data = normalize_data(data)
+            X, y = create_dataset(normalized_data)
+            kf = KFold(n_splits=args.folds, shuffle=False)
 
-    main(data, scaler, X, y, kf, args)
+            main(coin, data, scaler, X, y, kf, args)
+    else:
+        data = load_and_preprocess_data(args.coin)
+        scaler, normalized_data = normalize_data(data)
+        X, y = create_dataset(normalized_data)
+        kf = KFold(n_splits=args.folds, shuffle=False)
+
+        main(args.coin, data, scaler, X, y, kf, args)
