@@ -31,6 +31,7 @@ The Code will produce a Performance Table at the end of Forecasting. The smalles
 - `--show_all`: Show's the Result of all Agents. 
 - `--plot`: Plot the Predictions.
 - `--debug`: Level of Debugging (default: 0).
+- `--auto`: Automatically Check all Shores and Cryptocurrencies available. 
 
 ## Model Architecture
 
