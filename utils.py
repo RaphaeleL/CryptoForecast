@@ -90,7 +90,7 @@ def plot(coin, agent, train, test, val):
         axs[i].legend()
         axs[i].grid(True)
         axs[i].xaxis_date()
-        axs[i].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        axs[i].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d - %H:%M'))
         plt.setp(axs[i].get_xticklabels(), rotation=45, ha='right')
 
     plt.tight_layout()
