@@ -128,8 +128,10 @@ def train(X, X_train, y_train, batch_size, epochs, debug_level, args, agent, ind
     if args.retrain:
         agent_info = f" for Agent {agent+1:02d}/{args.agents:02d}"
         fold_info = f"by Fold {index+1:02d}/{args.folds:02d}"
-        if debug > 0 and predict: print_colored(f"Predict Future {agent_info} {fold_info}", "purple")
-        elif debug > 0 and not predict: print_colored(f"Calculate History {agent_info} {fold_info}", "yellow")
+        if debug > 0 and predict: 
+            print_colored(f"Predict Future {agent_info} {fold_info}", "purple")
+        elif debug > 0 and not predict: 
+            print_colored(f"Calculate History {agent_info} {fold_info}", "yellow")
         model.fit(
             X_train,
             y_train,
