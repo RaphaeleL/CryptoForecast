@@ -13,7 +13,6 @@ from keras import Sequential
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
 from keras.optimizers.legacy import Adam
-
 from tqdm.keras import TqdmCallback
 
 def load_and_preprocess_data(ticker):
@@ -77,7 +76,7 @@ def plot(coin, agent, train, test, val, prediction):
     axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=90))
 
     pre_days = prediction * 12 
-    axs[1].plot(val.tail(pre_days).index, val['Prediction'][-pre_days:], label=f"Actual Prediction", alpha=0.7)
+    axs[1].plot(val.head(pre_days).index, val['Prediction'][:pre_days], label=f"Actual Prediction", alpha=0.7)
     axs[1].set_title(f"{coin} Future Predictions by Agent {agent+1}")
     axs[1].set_xlabel("Days")
     axs[1].set_ylabel("Price")
@@ -108,9 +107,8 @@ def build_and_compile_model(num_features, coin):
     model = Sequential(
         [
             Conv1D(64, 1, activation="relu", input_shape=(1, num_features)),
-            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
             Dropout(0.2),
             Flatten(),
             Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
@@ -119,7 +117,7 @@ def build_and_compile_model(num_features, coin):
     )
     model.compile(optimizer=Adam(0.001), loss="mse")
     path = get_weight_file_path(coin)
-    if path: model.load_weights(path)
+    if os.path.isfile(path): model.load_weights(path)
     return model
 
 def train(X, X_train, y_train, batch_size, epochs, debug_level, args, agent, index, debug, predict=False):
@@ -128,12 +126,10 @@ def train(X, X_train, y_train, batch_size, epochs, debug_level, args, agent, ind
     callbacks = [TqdmCallback(verbose=tqdm_verbose)] if debug_level > 0 else []
     model = build_and_compile_model(X.shape[2], args.coin)
     if args.retrain:
-        agent_info = f"{agent+1:02d}/{args.agents:02d}"
-        fold_info = f"{index+1:02d}/{args.folds:02d}"
-        if debug > 0 and predict:
-            print_colored(f"Predict Future for Agent {agent_info} by Fold {fold_info}", "purple")
-        elif debug > 0 and not predict:
-            print_colored(f"Calculate History for Agent {agent_info} by Fold {fold_info}", "yellow")
+        agent_info = f" for Agent {agent+1:02d}/{args.agents:02d}"
+        fold_info = f"by Fold {index+1:02d}/{args.folds:02d}"
+        if debug > 0 and predict: print_colored(f"Predict Future {agent_info} {fold_info}", "purple")
+        elif debug > 0 and not predict: print_colored(f"Calculate History {agent_info} {fold_info}", "yellow")
         model.fit(
             X_train,
             y_train,
@@ -222,7 +218,7 @@ def print_agent_performance_overview(agents, performance_data, best_agent):
             color[agent] = "green"
         print_colored(f"{best} Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f}", color[agent])
 
-def load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu, coin):
+def load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu):
     predictions = []
     actuals = []
     for index, (train_index, test_index) in enumerate(kf.split(X)):

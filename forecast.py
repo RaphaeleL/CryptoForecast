@@ -9,7 +9,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, models, prediction_days=1):
     """Forecast cryptocurrency prices."""
-    model, test_pred, test_actu = load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu, args.coin)
+    model, test_pred, test_actu = load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu)
     real_pred = predict_future(args, kf, X, y, agent, scaler, data, real_pred, prediction_days * 24)
     models[agent] = model
 
