@@ -1,3 +1,4 @@
+import os
 import math
 import argparse
 import yfinance as yf
@@ -7,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib import dates as mdates
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import KFold
 from keras import Sequential
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
@@ -43,28 +45,20 @@ def create_dataset(dataset):
         dataY.append(dataset[i + 1, 0])
     return np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
 
-def plot_all(coin, best_agent, val):
-    """Plot predictions and actuals for all agents in a single GUI window."""
-    num_agents = len(val)
-    rows = math.ceil(math.sqrt(num_agents))
-    cols = math.ceil(num_agents / rows)
-    plt.figure(figsize=(15, rows * 5))
+def plot_all(real_pred, prediction):
+    """Plot future Predictions"""
+    pre_days = prediction * 12
+    print("***", pre_days)
+    for val in real_pred:
+        if val.empty: continue
+        plt.plot(val.index[:pre_days], val["Prediction"][:pre_days], label=f"Future Predictions")
     
-    for i in range(num_agents):
-        if i == best_agent: title = f"{coin} Price Prediction by BEST Agent {i+1}"
-        else: title = f"{coin} Price Prediction by Agent {i+1}"
-        ax = plt.subplot(rows, cols, i + 1)
-        ax.plot(val[i].index, val[i]["Prediction"], label=f"Agent {i+1} Real Predictions")
-        ax.set_title(title)
-        ax.set_xlabel("Days")
-        ax.set_ylabel("Price in $")
-        ax.legend()
-        ax.grid(True)
-        ax.xaxis_date()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=30)) 
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
-    # plt.savefig(f"images/{coin}_{pd.to_datetime("today").strftime("%Y-%m-%d")}.png")
+    plt.legend()
+    plt.grid(True)
+    plt.gca().xaxis_date()
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d - %H:%M"))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
     plt.tight_layout()
     plt.show()
 
@@ -109,7 +103,7 @@ def split(X, y, train_index, test_index=None):
         return X_train, X_test, y_train, y_test
     return X_train, y_train
 
-def build_and_compile_model(num_features):
+def build_and_compile_model(num_features, coin):
     """Build and compile the Keras Sequential model."""
     model = Sequential(
         [
@@ -124,20 +118,33 @@ def build_and_compile_model(num_features):
         ]
     )
     model.compile(optimizer=Adam(0.001), loss="mse")
+    path = get_weight_file_path(coin)
+    if path: model.load_weights(path)
     return model
 
-def train(X, X_train, y_train, batch_size, epochs, debug_level):
+def train(X, X_train, y_train, batch_size, epochs, debug_level, args, agent, index, debug, predict=False):
     """Train the model."""
-    callbacks = [TqdmCallback(verbose=debug_level)] if debug_level > 0 else []
-    model = build_and_compile_model(X.shape[2])
-    model.fit(
-        X_train,
-        y_train,
-        batch_size=batch_size,
-        epochs=epochs,
-        verbose=0,
-        callbacks=callbacks,
-    )
+    tqdm_verbose = 1 if debug_level > 1 else 0
+    callbacks = [TqdmCallback(verbose=tqdm_verbose)] if debug_level > 0 else []
+    model = build_and_compile_model(X.shape[2], args.coin)
+    if args.retrain:
+        agent_info = f"{agent+1:02d}/{args.agents:02d}"
+        fold_info = f"{index+1:02d}/{args.folds:02d}"
+        if debug > 0 and predict:
+            print_colored(f"Predict Future for Agent {agent_info} by Fold {fold_info}", "purple")
+        elif debug > 0 and not predict:
+            print_colored(f"Calculate History for Agent {agent_info} by Fold {fold_info}", "yellow")
+        model.fit(
+            X_train,
+            y_train,
+            batch_size=batch_size,
+            epochs=epochs,
+            verbose=0,
+            callbacks=callbacks,
+        )
+    else:
+        path = get_weight_file_path(args.coin)
+        if os.path.isfile(path): model.load_weights(path)
     return model
 
 def argument_parser():
@@ -149,10 +156,10 @@ def argument_parser():
     argparser.add_argument("--agents", type=int, default=6)
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
-    argparser.add_argument("--show_all", action="store_true")
     argparser.add_argument("--plot", action="store_true")
-    argparser.add_argument("--auto", action="store_true")
-    argparser.add_argument("--debug", type=int, default=0)
+    argparser.add_argument("--debug", type=int, default=1)
+    argparser.add_argument("--retrain", action="store_true")
+    argparser.add_argument("--save", action="store_true")
     args = argparser.parse_args()
     return args
 
@@ -214,3 +221,72 @@ def print_agent_performance_overview(agents, performance_data, best_agent):
         if agent == best_agent:
             color[agent] = "green"
         print_colored(f"{best} Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f}", color[agent])
+
+def load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu, coin):
+    predictions = []
+    actuals = []
+    for index, (train_index, test_index) in enumerate(kf.split(X)):
+        X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
+        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug, args, agent, index, args.debug)
+        prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
+        predictions.extend(prediction)
+        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
+    test_dates = data.index[test_index].to_pydatetime()
+    test_pred.append(pd.DataFrame(prediction, index=test_dates, columns=['Prediction']))
+    test_actu.append(pd.DataFrame(scaler.inverse_transform(y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
+    return model, test_pred, test_actu
+
+def predict_future(args, kf, X, y, agent, scaler, data, real_pred, prediction_hours):
+    real_predictions = []
+    for index, (train_index, _) in enumerate(kf.split(X)):
+        X_train, y_train = split(X, y, train_index) 
+        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug, args, agent, index, args.debug, True)
+        prediction = scaler.inverse_transform(model.predict(X[-prediction_hours:], verbose=0))
+        real_predictions.extend(prediction)
+    last_day = data.index[-1]
+    next_day = last_day + pd.Timedelta(hours=1)
+    future_dates = pd.date_range(start=next_day, periods=len(real_predictions), freq='H')
+    real_pred.append(pd.DataFrame(real_predictions, index=future_dates, columns=['Prediction']))
+    return real_pred
+
+def get_data(args):
+    data = load_and_preprocess_data(args.coin)
+    scaler, normalized_data = normalize_data(data)
+    X, y = create_dataset(normalized_data)
+    kf = KFold(n_splits=args.folds, shuffle=False)
+    return data, scaler, X, y, kf
+
+def get_weight_file_path(coin):
+    path = f"weights/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path + f"{coin}.h5"
+
+def performance_output(args, real_pred, best_agent, coin, test_pred, test_actu):
+    duration = args.prediction * 12
+    first_entry = real_pred[best_agent].tail(duration).iloc[0]
+    last_entry = real_pred[best_agent].tail(duration).iloc[-1]
+    first_entry_value = first_entry['Prediction']
+    last_entry_value = last_entry['Prediction']
+    percentage_change = round(((last_entry_value - first_entry_value) / first_entry_value) * 100, 2)
+    trend = "rising" if percentage_change > 0 else "falling"
+    color = "green" if percentage_change > 0 else "red"
+
+    print_colored(f"{coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
+    if args.debug > 1:
+        print_colored(f" > First Prediction {first_entry_value}", color)
+        print_colored(f" > Last Prediction  {last_entry_value}", color)
+    if args.plot or args.debug > 1:
+        plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
+
+def get_model_with_weights(X, args, agent):
+    model = build_and_compile_model(X.shape[2], args.coin)
+    weight_file = get_weight_file_path(args.coin)
+    if os.path.isfile(weight_file):
+        model.load_weights(weight_file)
+        print_colored(f"Loading History for Agent {agent+1:02d}/{args.agents:02d}", "blue")
+    else: 
+        print_colored(f"ERROR: There is no Weight File for {args.coin} under {weight_file}", "red")
+        print_colored(f"       Consider to run following Command, to create the missing File:", "red")
+        print_colored(f"       $ python3 forecast.py --coin {args.coin}", "red")
+    return model
