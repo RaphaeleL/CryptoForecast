@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import threading, os, warnings
 from utils import *
 import pretty_errors
@@ -30,11 +32,14 @@ def main(coin, data, scaler, X, y, kf, args):
 
     performance_data = evaluate_agent_performance(test_actu, test_pred)
     best_agent = select_best_agent(performance_data)
+
+    performance_output(args, real_pred, best_agent, coin)
+
     if args.save:
         model_filename = get_weight_file_path(coin)
         models[best_agent].save_weights(model_filename)
         print_colored(f"Saved best model weights of Agent {best_agent+1} to '{model_filename}'", "green")
-    if args.debug > 2: plot(coin, agent, test_pred, test_actu, real_pred, args.prediction)
+    if args.plot: plot(coin, agent, test_pred, test_actu, real_pred, args.prediction)
 
 if __name__ == "__main__":
     args = argument_parser()

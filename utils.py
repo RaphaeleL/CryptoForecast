@@ -155,7 +155,7 @@ def argument_parser():
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
     argparser.add_argument("--plot", action="store_true")
-    argparser.add_argument("--debug", type=int, default=1)
+    argparser.add_argument("--debug", type=int, default=0)
     argparser.add_argument("--retrain", action="store_true")
     argparser.add_argument("--save", action="store_true")
     args = argparser.parse_args()
@@ -223,6 +223,7 @@ def print_agent_performance_overview(agents, performance_data, best_agent):
 def load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu):
     predictions = []
     actuals = []
+    print_colored(f"Load History for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
     for index, (train_index, test_index) in enumerate(kf.split(X)):
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
         model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug, args, agent, index, args.debug)
@@ -236,6 +237,7 @@ def load_history(args, kf, X, y, agent, scaler, data, test_pred, test_actu):
 
 def predict_future(args, kf, X, y, agent, scaler, data, real_pred, prediction_hours):
     real_predictions = []
+    print_colored(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d}", "purple")
     for index, (train_index, _) in enumerate(kf.split(X)):
         X_train, y_train = split(X, y, train_index) 
         model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug, args, agent, index, args.debug, True)
@@ -260,7 +262,7 @@ def get_weight_file_path(coin):
         os.makedirs(path)
     return path + f"{coin}.h5"
 
-def performance_output(args, real_pred, best_agent, coin, test_pred, test_actu):
+def performance_output(args, real_pred, best_agent, coin):
     duration = args.prediction * 12
     first_entry = real_pred[best_agent].tail(duration).iloc[0]
     last_entry = real_pred[best_agent].tail(duration).iloc[-1]
@@ -271,11 +273,8 @@ def performance_output(args, real_pred, best_agent, coin, test_pred, test_actu):
     color = "green" if percentage_change > 0 else "red"
 
     print_colored(f"{coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
-    if args.debug > 1:
-        print_colored(f" > First Prediction {first_entry_value}", color)
-        print_colored(f" > Last Prediction  {last_entry_value}", color)
-    if args.plot or args.debug > 1:
-        plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
+    print_colored(f" > First Prediction {first_entry_value}", color)
+    print_colored(f" > Last Prediction  {last_entry_value}", color)
 
 def get_model_with_weights(X, args, agent):
     model = build_and_compile_model(X.shape[2], args.coin)
