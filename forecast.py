@@ -10,38 +10,8 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, prediction_days=1):
     """Forecast cryptocurrency prices."""
-    predictions = []
-    actuals = []
-    real_predictions = []
-
-    # TODO: Improve Prediction Quality
-
-    for index, (train_index, test_index) in enumerate(kf.split(X)):
-        if args.debug > 0:
-            print(f"Training Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
-        X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
-        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
-        prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
-        predictions.extend(prediction)
-        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
-
-    test_dates = data.index[test_index].to_pydatetime()
-    test_pred.append(pd.DataFrame(prediction, index=test_dates, columns=['Prediction']))
-    test_actu.append(pd.DataFrame(scaler.inverse_transform(y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
-
-    for index, (train_index, _) in enumerate(kf.split(X)):
-        if args.debug > 0:
-            print(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
-        X_train, y_train = split(X, y, train_index) 
-        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
-        prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):], verbose=0))
-        real_predictions.extend(prediction)
-
-    last_day = test_actu[-1].index[-1]
-    next_day = last_day + pd.Timedelta(hours=1)
-    future_dates = pd.date_range(start=next_day, periods=len(real_predictions), freq='H')
-    real_pred.append(pd.DataFrame(real_predictions, index=future_dates, columns=['Prediction']))
-
+    test_pred, test_actu = load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu)
+    real_pred = predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_days)
     return test_pred, test_actu, real_pred
 
 def main(coin, data, scaler, X, y, kf, args):

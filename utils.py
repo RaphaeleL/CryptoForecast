@@ -214,3 +214,40 @@ def print_agent_performance_overview(agents, performance_data, best_agent):
         if agent == best_agent:
             color[agent] = "green"
         print_colored(f"{best} Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f}", color[agent])
+
+def load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu):
+    predictions = []
+    actuals = []
+
+    for index, (train_index, test_index) in enumerate(kf.split(X)):
+        if args.debug > 0:
+            print(f"Training Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
+        X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
+        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
+        prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
+        predictions.extend(prediction)
+        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
+
+    test_dates = data.index[test_index].to_pydatetime()
+    test_pred.append(pd.DataFrame(prediction, index=test_dates, columns=['Prediction']))
+    test_actu.append(pd.DataFrame(scaler.inverse_transform(y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
+
+    return test_pred, test_actu
+
+def predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_days):
+    real_predictions = []
+
+    for index, (train_index, _) in enumerate(kf.split(X)):
+        if args.debug > 0:
+            print(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
+        X_train, y_train = split(X, y, train_index) 
+        model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
+        prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):], verbose=0))
+        real_predictions.extend(prediction)
+
+    last_day = data.index[-1]
+    next_day = last_day + pd.Timedelta(hours=1)
+    future_dates = pd.date_range(start=next_day, periods=len(real_predictions), freq='H')
+    real_pred.append(pd.DataFrame(real_predictions, index=future_dates, columns=['Prediction']))
+
+    return real_pred
