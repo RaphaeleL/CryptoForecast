@@ -155,7 +155,7 @@ def argument_parser():
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
     argparser.add_argument("--plot", action="store_true")
-    argparser.add_argument("--debug", type=int, default=1)
+    argparser.add_argument("--debug", type=int, default=2)
     argparser.add_argument("--retrain", action="store_true")
     argparser.add_argument("--save", action="store_true")
     args = argparser.parse_args()
