@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import threading, os, warnings
 import pandas as pd
 from sklearn.model_selection import KFold
@@ -32,25 +34,13 @@ def main(coin, data, scaler, X, y, kf, args):
     best_agent = select_best_agent(performance_data)
     if args.debug > 0: 
         print_agent_performance_overview(args.agents, performance_data, best_agent)
+        performance_output(args, real_pred, best_agent, coin)
 
     if args.show_all:
         plot_all(coin, best_agent, real_pred)
 
-    duration = args.prediction * 12
-    first_entry = real_pred[best_agent].tail(duration).iloc[0]
-    last_entry = real_pred[best_agent].tail(duration).iloc[-1]
-    first_entry_value = first_entry['Prediction']
-    last_entry_value = last_entry['Prediction']
-    percentage_change = round(((last_entry_value - first_entry_value) / first_entry_value) * 100, 2)
-    trend = "rising" if percentage_change > 0 else "falling"
-    color = "green" if percentage_change > 0 else "red"
-
-    print_colored(f"{coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
-    if args.debug > 1:
-        print_colored(f" > First Prediction {first_entry_value}", color)
-        print_colored(f" > Last Prediction  {last_entry_value}", color)
-        if args.plot or args.show_all:
-            plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
+    if args.plot or args.debug > 0:
+        plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
 
 if __name__ == "__main__":
     args = argument_parser()

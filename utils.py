@@ -128,7 +128,8 @@ def build_and_compile_model(num_features):
 
 def train(X, X_train, y_train, batch_size, epochs, debug_level):
     """Train the model."""
-    callbacks = [TqdmCallback(verbose=debug_level)] if debug_level > 0 else []
+    tqdm_verbose = 1 if debug_level > 1 else 0
+    callbacks = [TqdmCallback(verbose=tqdm_verbose)] if debug_level > 0 else []
     model = build_and_compile_model(X.shape[2])
     model.fit(
         X_train,
@@ -152,7 +153,7 @@ def argument_parser():
     argparser.add_argument("--show_all", action="store_true")
     argparser.add_argument("--plot", action="store_true")
     argparser.add_argument("--auto", action="store_true")
-    argparser.add_argument("--debug", type=int, default=0)
+    argparser.add_argument("--debug", type=int, default=2)
     args = argparser.parse_args()
     return args
 
@@ -251,3 +252,15 @@ def predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_da
     real_pred.append(pd.DataFrame(real_predictions, index=future_dates, columns=['Prediction']))
 
     return real_pred
+
+def performance_output(args, real_pred, best_agent, coin):
+    duration = args.prediction * 12
+    first_entry = real_pred[best_agent].tail(duration).iloc[0]
+    last_entry = real_pred[best_agent].tail(duration).iloc[-1]
+    first_entry_value = first_entry['Prediction']
+    last_entry_value = last_entry['Prediction']
+    percentage_change = round(((last_entry_value - first_entry_value) / first_entry_value) * 100, 2)
+    trend = "rising" if percentage_change > 0 else "falling"
+    color = "green" if percentage_change > 0 else "red"
+
+    print_colored(f"{coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
