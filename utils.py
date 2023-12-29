@@ -260,7 +260,7 @@ def get_weight_file_path(coin):
         os.makedirs(path)
     return path + f"{coin}.h5"
 
-def performance_output(args, real_pred, best_agent, coin, test_pred, test_actu):
+def performance_output(args, real_pred, best_agent, coin):
     duration = args.prediction * 12
     first_entry = real_pred[best_agent].tail(duration).iloc[0]
     last_entry = real_pred[best_agent].tail(duration).iloc[-1]
@@ -274,8 +274,6 @@ def performance_output(args, real_pred, best_agent, coin, test_pred, test_actu):
     if args.debug > 1:
         print_colored(f" > First Prediction {first_entry_value}", color)
         print_colored(f" > Last Prediction  {last_entry_value}", color)
-    if args.plot or args.debug > 1:
-        plot(args.coin, best_agent, test_pred, test_actu, real_pred, args.prediction)
 
 def get_model_with_weights(X, args, agent):
     model = build_and_compile_model(X.shape[2], args.coin)
