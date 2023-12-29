@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import threading, os, warnings
 from utils import *
 import pretty_errors
