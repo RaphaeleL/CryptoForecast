@@ -22,7 +22,7 @@ def load_and_preprocess_data(ticker):
     data.set_index("Date", inplace=True)
     return stretch_data(data)
 
-def stretch_data(data, stretch_factor=24):
+def stretch_data(data, stretch_factor=8):
     """Stretch daily data to a specified hourly interval."""
     data.index = pd.to_datetime(data.index)
     interval = f"{int(24 / stretch_factor)}H"
