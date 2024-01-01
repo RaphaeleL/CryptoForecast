@@ -83,7 +83,7 @@ def plot(coin, agent, train, test, val, prediction):
     axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=90))
 
     pre_days = prediction * 12 
-    axs[1].plot(val.tail(pre_days).index, val['Prediction'][-pre_days:], label=f"Actual Prediction", alpha=0.7)
+    axs[1].plot(val.head(pre_days).index, val['Prediction'][:pre_days], label=f"Actual Prediction", alpha=0.7)
     axs[1].set_title(f"{coin} Future Predictions by Agent {agent+1}")
     axs[1].set_xlabel("Days")
     axs[1].set_ylabel("Price")
@@ -219,10 +219,8 @@ def print_agent_performance_overview(agents, performance_data, best_agent):
 def load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu):
     predictions = []
     actuals = []
-
+    print_colored(f"Load History for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
     for index, (train_index, test_index) in enumerate(kf.split(X)):
-        if args.debug > 0:
-            print(f"Training Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
         model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
@@ -237,10 +235,8 @@ def load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu):
 
 def predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_days):
     real_predictions = []
-
+    print_colored(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
     for index, (train_index, _) in enumerate(kf.split(X)):
-        if args.debug > 0:
-            print(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d} with Fold {index+1:02d}/{args.folds:02d}")
         X_train, y_train = split(X, y, train_index) 
         model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
         prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):], verbose=0))
