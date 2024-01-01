@@ -106,11 +106,10 @@ def argument_parser():
     argparser = argparse.ArgumentParser(description="Cryptocurrency Price Prediction")
     argparser.add_argument("--coin", type=str, default="LTC-EUR")
     argparser.add_argument("--batch_size", type=int, default=32)
-    argparser.add_argument("--epochs", type=int, default=5)
+    argparser.add_argument("--epochs", type=int, default=100)
     argparser.add_argument("--agents", type=int, default=6)
-    argparser.add_argument("--folds", type=int, default=2)
+    argparser.add_argument("--folds", type=int, default=6)
     argparser.add_argument("--prediction", type=int, default=7)
-    argparser.add_argument("--plot", action="store_true")
     argparser.add_argument("--debug", type=int, default=2)
     args = argparser.parse_args()
     return args

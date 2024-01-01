@@ -33,7 +33,7 @@ def main(coin, data, scaler, X, y, kf, args):
     best_agent = select_best_agent(performance_data)
     percentage_change =  performance_output(args, real_pred, best_agent, coin)
 
-    if args.plot or args.debug > 0:
+    if args.debug > 0:
         mae_score = evaluate_agent_performance(test_actu, test_pred)[best_agent]
         plot(args.coin, best_agent, real_pred, args.prediction, mae_score, percentage_change)
 
