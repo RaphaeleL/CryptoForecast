@@ -1,4 +1,3 @@
-import math
 import argparse
 import yfinance as yf
 import pandas as pd
@@ -11,7 +10,6 @@ from keras import Sequential
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
 from keras.optimizers.legacy import Adam
-
 from tqdm.keras import TqdmCallback
 
 def load_and_preprocess_data(ticker):
@@ -22,7 +20,7 @@ def load_and_preprocess_data(ticker):
     data.set_index("Date", inplace=True)
     return stretch_data(data)
 
-def stretch_data(data, stretch_factor=8):
+def stretch_data(data, stretch_factor=4):
     """Stretch daily data to a specified hourly interval."""
     data.index = pd.to_datetime(data.index)
     interval = f"{int(24 / stretch_factor)}H"
@@ -43,59 +41,22 @@ def create_dataset(dataset):
         dataY.append(dataset[i + 1, 0])
     return np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
 
-def plot_all(coin, best_agent, val):
-    """Plot predictions and actuals for all agents in a single GUI window."""
-    num_agents = len(val)
-    rows = math.ceil(math.sqrt(num_agents))
-    cols = math.ceil(num_agents / rows)
-    plt.figure(figsize=(15, rows * 5))
-    
-    for i in range(num_agents):
-        if i == best_agent: title = f"{coin} Price Prediction by BEST Agent {i+1}"
-        else: title = f"{coin} Price Prediction by Agent {i+1}"
-        ax = plt.subplot(rows, cols, i + 1)
-        ax.plot(val[i].index, val[i]["Prediction"], label=f"Agent {i+1} Real Predictions")
-        ax.set_title(title)
-        ax.set_xlabel("Days")
-        ax.set_ylabel("Price in $")
-        ax.legend()
-        ax.grid(True)
-        ax.xaxis_date()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=30)) 
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
-    # plt.savefig(f"images/{coin}_{pd.to_datetime("today").strftime("%Y-%m-%d")}.png")
-    plt.tight_layout()
-    plt.show()
-
-def plot(coin, agent, train, test, val, prediction):
+def plot(coin, agent, val, prediction, mae_score, percentage_change):
     """Plot predictions and actuals for the best agents in a single GUI window."""
-    length = 2
-    _, axs = plt.subplots(length, 1, figsize=(15, 10))
-
-    train, test, val = train[agent], test[agent], val[agent]
-    
-    axs[0].plot(train.index, train["Prediction"], label=f"Train Predictions")
-    axs[0].plot(test.index, test["Actual"], label=f"Test Actuals", alpha=0.7)
-    axs[0].set_title(f"{coin} Train/Test by Agent {agent+1}")
-    axs[0].set_xlabel("Days")
-    axs[0].set_ylabel("Price")
-    axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=90))
-
-    pre_days = prediction * 12 
-    axs[1].plot(val.head(pre_days).index, val['Prediction'][:pre_days], label=f"Actual Prediction", alpha=0.7)
-    axs[1].set_title(f"{coin} Future Predictions by Agent {agent+1}")
-    axs[1].set_xlabel("Days")
-    axs[1].set_ylabel("Price")
-    axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=1))
-
-    for i in range(length):
-        axs[i].legend()
-        axs[i].grid(True)
-        axs[i].xaxis_date()
-        axs[i].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d - %H:%M"))
-        plt.setp(axs[i].get_xticklabels(), rotation=45, ha="right")
-
+    val_agent = val[agent] if isinstance(val, list) and len(val) > agent else val
+    pre_days = prediction * 12
+    pre_days = min(pre_days, len(val_agent)) 
+    trend = "rising" if percentage_change > 0 else "falling"
+    plt.figure(figsize=(10, 5)) 
+    plt.plot(val_agent.head(pre_days).index, val_agent['Prediction'][:pre_days], label="Prediction", alpha=0.7)
+    plt.title(f"{coin} Prediction by #{agent+1} with MAE {mae_score:.2f} - It is {trend} by {percentage_change}% within {pre_days/24} days.")
+    plt.xlabel("Days")
+    plt.ylabel("Price")
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d - %H:%M"))
+    plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
+    plt.grid(True)
+    plt.legend()
     plt.tight_layout()
     plt.show()
 
@@ -114,9 +75,8 @@ def build_and_compile_model(num_features):
     model = Sequential(
         [
             Conv1D(64, 1, activation="relu", input_shape=(1, num_features)),
-            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
+            Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
             Dropout(0.2),
             Flatten(),
             Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
@@ -150,9 +110,7 @@ def argument_parser():
     argparser.add_argument("--agents", type=int, default=6)
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
-    argparser.add_argument("--show_all", action="store_true")
     argparser.add_argument("--plot", action="store_true")
-    argparser.add_argument("--auto", action="store_true")
     argparser.add_argument("--debug", type=int, default=2)
     args = argparser.parse_args()
     return args
@@ -176,17 +134,6 @@ def print_colored(to_print, color, end="\n"):
     }
     print(f"{colors.get(color, '')}{to_print}{colors['end']}", end=end)
 
-def print_data(data, best_agent):
-    """Print the dataset."""
-    for agent in range(len(data)):
-        color = "green" if agent == best_agent else "red"
-        border = "*" * 31 
-        end_border = "*" * 17 
-        print_colored(border, color)
-        print_colored(f"***** Agent {agent+1} {end_border}", color)
-        print_colored(border, color)
-        print(data[agent])
-
 def select_best_agent(performance_data):
     """Select the best agent based on performance data."""
     best_agent_index = performance_data.index(min(performance_data))
@@ -204,23 +151,12 @@ def evaluate_agent_performance(test_actu, test_pred):
         performance_data.append(mae)
     return performance_data
 
-def print_agent_performance_overview(agents, performance_data, best_agent):
-    color = {x : "red" for x in range(agents)}
-    for agent in range(agents):
-        if need_retraining(agent, performance_data, 2.0):
-            # TODO: Retrain
-            best = "*"
-        else: 
-            best = " "
-        if agent == best_agent:
-            color[agent] = "green"
-        print_colored(f"{best} Agent {agent+1:02d} Performance: {performance_data[agent]:05.2f}", color[agent])
-
 def load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu):
+    """Load history for each agent."""
     predictions = []
     actuals = []
     print_colored(f"Load History for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
-    for index, (train_index, test_index) in enumerate(kf.split(X)):
+    for train_index, test_index in kf.split(X):
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
         model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
@@ -234,9 +170,10 @@ def load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu):
     return test_pred, test_actu
 
 def predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_days):
+    """Predict future cryptocurrency prices."""
     real_predictions = []
-    print_colored(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
-    for index, (train_index, _) in enumerate(kf.split(X)):
+    print_colored(f"Predict Future for Agent {agent+1:02d}/{args.agents:02d}", "purple")
+    for train_index, _ in kf.split(X):
         X_train, y_train = split(X, y, train_index) 
         model = train(X, X_train, y_train, args.batch_size, args.epochs, args.debug)
         prediction = scaler.inverse_transform(model.predict(X[-(prediction_days*12):], verbose=0))
@@ -250,13 +187,11 @@ def predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_da
     return real_pred
 
 def performance_output(args, real_pred, best_agent, coin):
+    """Output the performance of the best agent."""
     duration = args.prediction * 12
     first_entry = real_pred[best_agent].tail(duration).iloc[0]
     last_entry = real_pred[best_agent].tail(duration).iloc[-1]
     first_entry_value = first_entry['Prediction']
     last_entry_value = last_entry['Prediction']
     percentage_change = round(((last_entry_value - first_entry_value) / first_entry_value) * 100, 2)
-    trend = "rising" if percentage_change > 0 else "falling"
-    color = "green" if percentage_change > 0 else "red"
-
-    print_colored(f"{coin} is {trend} by {percentage_change}% within {duration/24} days.", color)
+    return percentage_change
