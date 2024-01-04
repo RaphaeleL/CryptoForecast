@@ -2,10 +2,14 @@ import argparse
 import yfinance as yf
 import pandas as pd
 import numpy as np
+
 from matplotlib import pyplot as plt
 from matplotlib import dates as mdates
+
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error
+
 from keras import Sequential
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from keras.regularizers import l2
@@ -158,14 +162,17 @@ def width(string):
     return len(string.encode('utf-8'))
 
 
-def print_result(coin, best_agent, trend, duration):
+def print_result(coin, best_agent, trend, duration, mae_score):
     """Print the result of the best agent."""
     color = "green" if trend > 0 else "red"
     t_type = trend_type(trend)
     duration = duration / 24
     string = f"* {coin} is {t_type} by {trend}% within {duration} Days *"
+    mae_string = f"* > MAE Score: {mae_score:.2f}"
+    mae_string += " " * (width(string) - width(mae_string) - 1) + "*"
     cprint("*" * width(string), color)
     cprint(string, color)
+    cprint(mae_string, color)
     cprint("*" * width(string), color)
 
 
@@ -183,36 +190,36 @@ def create_performance_table(test, train):
     return performance_table
 
 
-def load_history(args, kf, agent, X, y, scaler, data, train, test):
+def load_history(args, agent, X, y, scaler, data, train, test):
     """Load history for each agent."""
     predictions = []
     actuals = []
     color = "yellow" if args.debug > 0 else "default"
     cprint(f"Load History for Agent {agent+1:02d}/{args.agents:02d}", color)
-    for train_index, test_index in kf.split(X):
-        X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
+    for train_idx, test_idx in TimeSeriesSplit(n_splits=args.folds).split(X):
+        X_train, X_test, y_train, y_test = split(X, y, train_idx, test_idx)
         model = train_model(X, X_train, y_train, args)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
         predictions.extend(prediction)
         actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
 
-    test_dates = data.index[test_index].to_pydatetime()
+    test_dates = data.index[test_idx].to_pydatetime()
     train.append(pd.DataFrame(
-        prediction, index=test_dates, columns=['Prediction']))
+        prediction, index=test_dates, columns=["Prediction"]))
     test.append(pd.DataFrame(scaler.inverse_transform(
-        y_test.reshape(-1, 1)), index=test_dates, columns=['Actual']))
+        y_test.reshape(-1, 1)), index=test_dates, columns=["Actual"]))
 
     return train, test
 
 
-def predict_future(args, kf, agent, X, y, scaler, data, val):
+def predict_future(args, agent, X, y, scaler, data, val):
     """Predict future cryptocurrency prices."""
     valictions = []
     agent_str = f"{agent+1:02d}/{args.agents:02d}"
     color = "purple" if args.debug > 0 else "default"
     cprint(f"Predict Future for Agent {agent_str}", color)
-    for train_index, _ in kf.split(X):
-        X_train, y_train = split(X, y, train_index)
+    for train_idx, _ in TimeSeriesSplit(n_splits=args.folds).split(X):
+        X_train, y_train = split(X, y, train_idx)
         model = train_model(X, X_train, y_train, args)
         prediction = scaler.inverse_transform(model.predict(X, verbose=0))
         valictions.extend(prediction)
@@ -220,8 +227,8 @@ def predict_future(args, kf, agent, X, y, scaler, data, val):
     last_day = data.index[-1]
     next_day = last_day + pd.Timedelta(hours=1)
     future_dates = pd.date_range(
-        start=next_day, periods=len(valictions), freq='H')
-    df = pd.DataFrame(valictions, index=future_dates, columns=['Prediction'])
+            start=next_day, periods=len(valictions), freq="H")
+    df = pd.DataFrame(valictions, index=future_dates, columns=["Prediction"])
     val.append(df)
 
     return val
@@ -229,7 +236,7 @@ def predict_future(args, kf, agent, X, y, scaler, data, val):
 
 def calculate_trend(prediction_duration, val, best_agent, coin):
     """Output the performance of the best agent."""
-    first = val[best_agent].tail(prediction_duration).iloc[0]['Prediction']
-    last = val[best_agent].tail(prediction_duration).iloc[-1]['Prediction']
+    first = val[best_agent].tail(prediction_duration).iloc[0]["Prediction"]
+    last = val[best_agent].tail(prediction_duration).iloc[-1]["Prediction"]
     percentage = ((last - first) / first)
     return round(percentage * 100, 2)
