@@ -99,8 +99,9 @@ def build_and_compile_model(num_features):
     return model
 
 
-def train_model(X, X_train, y_train, batch_size, epochs, debug_level):
+def train_model(X, X_train, y_train, args):
     """Train the model."""
+    batch_size, epochs, debug_level = args.batch_size, args.epochs, args.debug
     tqdm_verbose = 1 if debug_level > 1 else 0
     callbacks = [TqdmCallback(verbose=tqdm_verbose)] if debug_level > 0 else []
     model = build_and_compile_model(X.shape[2])
@@ -179,11 +180,10 @@ def load_history(args, kf, agent, X, y, scaler, data, train, test):
         f"Load History for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
     for train_index, test_index in kf.split(X):
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
-        btsz, epc, dbg = args.batch_size, args.epochs, args.debug
-        model = train_model(X, X_train, y_train, btsz, epc, dbg)
+        model = train_model(X, X_train, y_train, args)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
         predictions.extend(prediction)
-        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
+        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))  
 
     test_dates = data.index[test_index].to_pydatetime()
     train.append(pd.DataFrame(
@@ -201,8 +201,7 @@ def predict_future(args, kf, agent, X, y, scaler, data, val):
     cprint(f"Predict Future for Agent {agent_str}", "purple")
     for train_index, _ in kf.split(X):
         X_train, y_train = split(X, y, train_index)
-        btsz, epc, dbg = args.batch_size, args.epochs, args.debug
-        model = train_model(X, X_train, y_train, btsz, epc, dbg)
+        model = train_model(X, X_train, y_train, args)
         prediction = scaler.inverse_transform(model.predict(X, verbose=0))
         valictions.extend(prediction)
 
