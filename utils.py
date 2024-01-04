@@ -183,7 +183,7 @@ def load_history(args, kf, agent, X, y, scaler, data, train, test):
         model = train_model(X, X_train, y_train, args)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
         predictions.extend(prediction)
-        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))  
+        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
 
     test_dates = data.index[test_index].to_pydatetime()
     train.append(pd.DataFrame(
