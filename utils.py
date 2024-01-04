@@ -46,18 +46,18 @@ def create_dataset(dataset):
     return np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
 
 
-def plot(coin, agent, val, prediction, mae_score, percentage_change):
+def plot(coin, agent, val, prediction, mae_score, p_trend):
     """Plot predictions for the best agent"""
     val_agent = val[agent]
     pre_days = prediction * 12
     pre_days = min(pre_days, len(val_agent))
-    trend = "rising" if percentage_change > 0 else "falling"
+    trend = "rising" if p_trend > 0 else "falling"
     plt.figure(figsize=(10, 5))
     indexes = val_agent.head(pre_days).index
     labels = val_agent['Prediction'][:pre_days]
     plt.plot(indexes, labels, label="Prediction", alpha=0.7)
     plt.title(f"{coin} Prediction by #{agent+1} with MAE {mae_score:.2f} -\
-            It is {trend} by {percentage_change}% within {pre_days/24} days.")
+            It is {trend} by {p_trend}% within {pre_days/24} days.")
     plt.xlabel("Days")
     plt.ylabel("Price")
     formatter = mdates.DateFormatter("%Y-%m-%d - %H:%M")
@@ -131,13 +131,6 @@ def argument_parser():
     return args
 
 
-def check(first_pred, last_actual, p=0.05):
-    """Check if the prediction is valid."""
-    if first_pred >= last_actual * (1-p) and first_pred <= last_actual * (1+p):
-        return True
-    return False
-
-
 def cprint(to_print, color, end="\n"):
     """Print text in the given color."""
     colors = {
@@ -156,11 +149,6 @@ def select_best_agent(performance_data):
     """Select the best agent based on performance data."""
     best_agent_index = performance_data.index(min(performance_data))
     return best_agent_index
-
-
-def need_retraining(best_agent, performance_data, threshold=0.1):
-    """Check if the best agent's performance need a retraining"""
-    return performance_data[best_agent] > threshold
 
 
 def evaluate_agent_performance(test, train):
@@ -215,13 +203,9 @@ def predict_future(args, kf, agent, X, y, scaler, data, val):
     return val
 
 
-def performance_output(args, val, best_agent, coin):
+def calculate_trend(prediction_duration, val, best_agent, coin):
     """Output the performance of the best agent."""
-    duration = args.prediction * 12
-    first_entry = val[best_agent].tail(duration).iloc[0]
-    last_entry = val[best_agent].tail(duration).iloc[-1]
-    first_entry_value = first_entry['Prediction']
-    last_entry_value = last_entry['Prediction']
-    percentage_change = round(
-        ((last_entry_value - first_entry_value) / first_entry_value) * 100, 2)
-    return percentage_change
+    first = val[best_agent].tail(prediction_duration).iloc[0]['Prediction']
+    last = val[best_agent].tail(prediction_duration).iloc[-1]['Prediction']
+    percentage = ((last - first) / first)
+    return round(percentage * 100, 2)

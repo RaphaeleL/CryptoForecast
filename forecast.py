@@ -7,7 +7,7 @@ import warnings
 from sklearn.model_selection import KFold
 from utils import argument_parser, load_history, predict_future, plot, \
         load_and_preprocess_data, normalize_data, create_dataset, \
-        evaluate_agent_performance, select_best_agent, performance_output
+        evaluate_agent_performance, select_best_agent, calculate_trend
 
 warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
@@ -38,9 +38,9 @@ def main(coin, data, scaler, X, y, kf, args):
     if args.debug > 1:
         performance_data = evaluate_agent_performance(test, train)
         best_agent = select_best_agent(performance_data)
-        p_change = performance_output(args, val, best_agent, coin)
+        trend = calculate_trend(args.prediction*12, val, best_agent, coin)
         mae_score = evaluate_agent_performance(test, train)[best_agent]
-        plot(args.coin, best_agent, val, args.prediction, mae_score, p_change)
+        plot(args.coin, best_agent, val, args.prediction, mae_score, trend)
 
 
 if __name__ == "__main__":
