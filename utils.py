@@ -46,18 +46,17 @@ def create_dataset(dataset):
     return np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
 
 
-def plot(coin, agent, val, prediction, mae_score, p_trend):
+def plot(coin, agent, val, prediction, mae_score, trend):
     """Plot predictions for the best agent"""
     val_agent = val[agent]
     pre_days = prediction * 12
     pre_days = min(pre_days, len(val_agent))
-    trend = "rising" if p_trend > 0 else "falling"
     plt.figure(figsize=(10, 5))
     indexes = val_agent.head(pre_days).index
     labels = val_agent['Prediction'][:pre_days]
     plt.plot(indexes, labels, label="Prediction", alpha=0.7)
     plt.title(f"{coin} Prediction by #{agent+1} with MAE {mae_score:.2f} -\
-            It is {trend} by {p_trend}% within {pre_days/24} days.")
+            It is {trend_type(trend)} by {trend}% within {pre_days/24} days.")
     plt.xlabel("Days")
     plt.ylabel("Price")
     formatter = mdates.DateFormatter("%Y-%m-%d - %H:%M")
@@ -142,30 +141,52 @@ def cprint(to_print, color, end="\n"):
         "cyan": "\033[96m",
         "end": "\033[0m",
     }
-    print(f"{colors.get(color, '')}{to_print}{colors['end']}", end=end)
+    if color != "default":
+        choosen_color = colors.get(color, '')
+        print(f"{choosen_color}{to_print}{colors['end']}", end=end)
+    else:
+        print(f"{to_print}", end=end)
 
 
-def select_best_agent(performance_data):
+def trend_type(trend):
+    """Return the trend type based on the given trend."""
+    return "rising" if trend > 0 else "falling"
+
+
+def width(string):
+    """Calculate the width of the given string."""
+    return len(string.encode('utf-8'))
+
+
+def print_result(coin, best_agent, trend):
+    """Print the result of the best agent."""
+    color = "green" if trend > 0 else "red"
+    string = f"* {coin} is {trend_type(trend)} by {trend}% *"
+    cprint("*" * width(string), color)
+    cprint(string, color)
+    cprint("*" * width(string), color)
+
+
+def get_best_agent(performance_table):
     """Select the best agent based on performance data."""
-    best_agent_index = performance_data.index(min(performance_data))
-    return best_agent_index
+    return performance_table.index(min(performance_table))
 
 
-def evaluate_agent_performance(test, train):
+def create_performance_table(test, train):
     """Evaluate the performance of each agent using Mean Absolute Error."""
-    performance_data = []
+    performance_table = []
     for actual, prediction in zip(test, train):
         mae = mean_absolute_error(actual["Actual"], prediction["Prediction"])
-        performance_data.append(mae)
-    return performance_data
+        performance_table.append(mae)
+    return performance_table
 
 
 def load_history(args, kf, agent, X, y, scaler, data, train, test):
     """Load history for each agent."""
     predictions = []
     actuals = []
-    cprint(
-        f"Load History for Agent {agent+1:02d}/{args.agents:02d}", "yellow")
+    color = "yellow" if args.debug > 0 else "default"
+    cprint(f"Load History for Agent {agent+1:02d}/{args.agents:02d}", color)
     for train_index, test_index in kf.split(X):
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
         model = train_model(X, X_train, y_train, args)
@@ -186,7 +207,8 @@ def predict_future(args, kf, agent, X, y, scaler, data, val):
     """Predict future cryptocurrency prices."""
     valictions = []
     agent_str = f"{agent+1:02d}/{args.agents:02d}"
-    cprint(f"Predict Future for Agent {agent_str}", "purple")
+    color = "purple" if args.debug > 0 else "default"
+    cprint(f"Predict Future for Agent {agent_str}", color)
     for train_index, _ in kf.split(X):
         X_train, y_train = split(X, y, train_index)
         model = train_model(X, X_train, y_train, args)
