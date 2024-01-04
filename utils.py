@@ -158,10 +158,12 @@ def width(string):
     return len(string.encode('utf-8'))
 
 
-def print_result(coin, best_agent, trend):
+def print_result(coin, best_agent, trend, duration):
     """Print the result of the best agent."""
     color = "green" if trend > 0 else "red"
-    string = f"* {coin} is {trend_type(trend)} by {trend}% *"
+    t_type = trend_type(trend)
+    duration = duration / 24
+    string = f"* {coin} is {t_type} by {trend}% within {duration} Days *"
     cprint("*" * width(string), color)
     cprint(string, color)
     cprint("*" * width(string), color)

@@ -40,7 +40,7 @@ def main(coin, data, scaler, X, y, kf, args):
     best_agent = get_best_agent(performance_table)
     trend = calculate_trend(args.prediction*12, val, best_agent, coin)
     mae_score = performance_table[best_agent]
-    print_result(coin, best_agent, trend)
+    print_result(coin, best_agent, trend, args.prediction*12)
     if args.debug > 1:
         plot(coin, best_agent, val, args.prediction, mae_score, trend)
 
