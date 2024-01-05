@@ -1,34 +1,27 @@
 #!/usr/bin/env python3
 
-import os
-import warnings
-import threading
-import tensorflow as tf
-
-from utils import argument_parser, load_history, predict_future, plot, \
-        load_and_preprocess_data, normalize_data, create_dataset, \
-        create_performance_table, get_best_agent, calculate_trend, \
-        print_result
+import threading, os, warnings
+from sklearn.model_selection import KFold
+from utils import *
 
 warnings.filterwarnings('ignore')
+import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  
 
-
-def crypto_forecast(data, scaler, X, y, agent, args, train, test, val):
+def crypto_forecast(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, prediction_days=1):
     """Forecast cryptocurrency prices."""
-    train, test = load_history(args, agent, X, y, scaler, data, train, test)
-    val = predict_future(args, agent, X, y, scaler, data, val)
-    return train, test, val
+    test_pred, test_actu = load_history(args, kf, agent, X, y, scaler, data, test_pred, test_actu)
+    real_pred = predict_future(args, kf, agent, X, y, scaler, data, real_pred, prediction_days)
+    return test_pred, test_actu, real_pred
 
-
-def main(coin, data, scaler, X, y, args):
-    threads, train, test, val = [], [], [], []
+def main(coin, data, scaler, X, y, kf, args):
+    threads, test_pred, test_actu, real_pred = [], [], [], []
 
     for agent in range(args.agents):
         thread = threading.Thread(
             target=crypto_forecast,
-            args=(data, scaler, X, y, agent, args, train, test, val),
+            args=(data, scaler, X, y, kf, agent, args, test_pred, test_actu, real_pred, args.prediction),
         )
         threads.append(thread)
         thread.start()
@@ -36,19 +29,18 @@ def main(coin, data, scaler, X, y, args):
     for thread in threads:
         thread.join()
 
-    performance_table = create_performance_table(test, train)
-    best_agent = get_best_agent(performance_table)
-    trend = calculate_trend(args.prediction*12, val, best_agent, coin)
-    mae_score = performance_table[best_agent]
-    print_result(coin, best_agent, trend, args.prediction*12, mae_score)
     if args.debug > 1:
-        plot(coin, best_agent, val, args.prediction, mae_score, trend)
-
+        performance_data = evaluate_agent_performance(test_actu, test_pred)
+        best_agent = select_best_agent(performance_data)
+        percentage_change =  performance_output(args, real_pred, best_agent, coin)
+        mae_score = evaluate_agent_performance(test_actu, test_pred)[best_agent]
+        plot(args.coin, best_agent, real_pred, args.prediction, mae_score, percentage_change)
 
 if __name__ == "__main__":
     args = argument_parser()
     data = load_and_preprocess_data(args.coin)
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data)
+    kf = KFold(n_splits=args.folds, shuffle=False)
 
-    main(args.coin, data, scaler, X, y, args)
+    main(args.coin, data, scaler, X, y, kf, args)
