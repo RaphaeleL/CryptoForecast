@@ -14,8 +14,12 @@ from keras.optimizers.legacy import Adam
 from tqdm.keras import TqdmCallback
 
 
+def api_call(ticker, prd="max", itvl="1d"):
+    return yf.download(ticker, period=prd, interval=itvl, progress=False)
+
+
 def load_and_preprocess_data(ticker):
-    data = yf.download(ticker)
+    data = api_call(ticker)
     data = data[["Close"]]
     data.reset_index(inplace=True)
     data.set_index("Date", inplace=True)
