@@ -51,14 +51,14 @@ def plot(coin, val, prediction):
     plt.plot(x, y, label="Prediction", alpha=0.7)
     plt.title(f"{coin} Future Predictions")
     plt.xlabel("Days")
-    plt.ylabel("Price")
+    plt.ylabel(f"Price in {coin.split('-')[1]}")
     plt.legend()
     plt.grid(True)
-    plt.tight_layout()
     plt.gca().xaxis_date()
     plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=1))
     plt.gca().xaxis.set_major_formatter(formatter)
     plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
+    plt.tight_layout()
     plt.show()
 
 
@@ -91,17 +91,10 @@ def build_and_compile_model(num_features, coin):
     return model
 
 
-def train(X, X_train, y_train, index, args, predict):
-    tqdm_verbose = 1 if args.debug > 1 else 0
-    callbacks = [TqdmCallback(verbose=tqdm_verbose)] if args.debug > 0 else []
+def train(args, X, X_train, y_train, predict):
+    callbacks = [TqdmCallback(verbose=1)] if args.retrain else []
     model = build_and_compile_model(X.shape[2], args.coin)
     if args.retrain:
-        fold_info = f"by Fold {index+1:02d}/{args.folds:02d}"
-        if args.debug > 0 and predict:
-            cprint(f"Predict Future {fold_info}", "purple")
-        elif args.debug > 0 and not predict:
-            cprint(
-                f"Calculate History {fold_info}", "yellow")
         model.fit(
             X_train,
             y_train,
@@ -125,7 +118,6 @@ def argument_parser():
     argparser.add_argument("--epochs", type=int, default=5)
     argparser.add_argument("--folds", type=int, default=2)
     argparser.add_argument("--prediction", type=int, default=7)
-    argparser.add_argument("--debug", type=int, default=0)
     argparser.add_argument("--retrain", action="store_true")
     args = argparser.parse_args()
     return args
@@ -144,46 +136,68 @@ def cprint(to_print, color, end="\n"):
     print(f"{colors.get(color, '')}{to_print}{colors['end']}", end=end)
 
 
-def load_history(args, kf, X, y, scaler, data, train_pred, actuals):
-    predictions = []
-    actuals = []
+def load_history(args, X, y, scaler, data):
+    all_train_pred = pd.DataFrame()
+    all_actuals_df = pd.DataFrame()
+
     cprint("Load History", "yellow")
+
+    kf = KFold(n_splits=args.folds, shuffle=False)
     for index, (train_index, test_index) in enumerate(kf.split(X)):
         X_train, X_test, y_train, y_test = split(X, y, train_index, test_index)
-        model = train(X, X_train, y_train, index, args, False)
+        model = train(args, X, X_train, y_train, False)
         prediction = scaler.inverse_transform(model.predict(X_test, verbose=0))
-        predictions.extend(prediction)
-        actuals.extend(scaler.inverse_transform(y_test.reshape(-1, 1)))
-    tst = data.index[test_index].to_pydatetime()
-    train_pred = pd.DataFrame(prediction, index=tst, columns=["Prediction"])
-    x = scaler.inverse_transform(y_test.reshape(-1, 1))
-    actuals = pd.DataFrame(x, index=tst, columns=["Actual"])
-    return model, train_pred, actuals
+
+        index = data.index[test_index].to_pydatetime()
+        train_pred_fold = pd.DataFrame(
+            prediction, index=index, columns=["Prediction"])
+        all_train_pred = pd.concat([all_train_pred, train_pred_fold])
+
+        actuals = scaler.inverse_transform(y_test.reshape(-1, 1))
+        actuals_fold = pd.DataFrame(actuals, index=index, columns=["Actual"])
+        all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
+
+    return model, all_train_pred, all_actuals_df
 
 
-def predict_future(args, kf, X, y, scaler, data, real_pred, prediction_hours):
-    real_preds = []
-    cprint("Predict Future", "yellow")
-    for index, (train_index, _) in enumerate(kf.split(X)):
-        X_train, y_train = split(X, y, train_index)
-        model = train(X, X_train, y_train, index, args, True)
-        prediction = scaler.inverse_transform(
-            model.predict(X[-prediction_hours:], verbose=0))
-        real_preds.extend(prediction)
-    last_day = data.index[-1]
-    next_day = last_day + pd.Timedelta(hours=1)
-    rpl = len(real_preds)
-    future_dates = pd.date_range(start=next_day, periods=rpl, freq="H")
-    res = pd.DataFrame(real_preds, index=future_dates, columns=["Prediction"])
+def predict_future(args, X, y, scaler, data, prediction_hours):
+    cprint("Predict Future", "purple")
+
+    model = train(args, X, X, y, True)
+    future_input = prepare_future_input(X, prediction_hours)
+    prediction = scaler.inverse_transform(
+        model.predict(future_input, verbose=0))
+
+    next_day = data.index[-1] + pd.Timedelta(hours=1)
+    future_dates = pd.date_range(
+        start=next_day, periods=prediction_hours, freq="H")
+
+    res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
     return res
 
 
-def get_data(args):
+def prepare_future_input(X, prediction_hours, input_window_size=24*7):
+    if isinstance(X, pd.DataFrame):
+        X = X.values
+
+    if len(X) < input_window_size:
+        raise ValueError("Not enough data to prepare future input.")
+
+    future_input = X[-input_window_size:]
+
+    return future_input
+
+
+def preprocess():
+    args = argument_parser()
     data = load_and_preprocess_data(args.coin)
     scaler, normalized_data = normalize_data(data)
     X, y = create_dataset(normalized_data)
-    kf = KFold(n_splits=args.folds, shuffle=False)
-    return data, scaler, X, y, kf
+    return args, data, scaler, X, y
+
+
+def postprocess(args, prd):
+    plot(args.coin, prd, args.prediction)
 
 
 def get_weight_file_path(coin):
@@ -191,22 +205,3 @@ def get_weight_file_path(coin):
     if not os.path.exists(path):
         os.makedirs(path)
     return path + f"{coin}.h5"
-
-
-# def performance_output(args, real_pred, mae, coin):
-#     duration = args.prediction * 12
-#     real_pred_concat = pd.concat(real_pred)
-#     first_entry = real_pred_concat.tail(duration).iloc[0]
-#     last_entry = real_pred_concat.tail(duration).iloc[-1]
-#     first_entry_value = first_entry["Prediction"]
-#     last_entry_value = last_entry["Prediction"]
-#     diff = (last_entry_value - first_entry_value)
-#     p_change = round((diff / first_entry_value) * 100, 2)
-#
-#     trend = f"{coin} is rising by" if p_change > 0 else f"{coin} is falling by"
-#     color = "green" if p_change > 0 else "red"
-#
-#     cprint(f"{trend} {p_change}% within {duration/24} days.", color)
-#     cprint(f" > First Prediction {first_entry_value}", color)
-#     cprint(f" > Last Prediction  {last_entry_value}", color)
-#     cprint(f" > MAE              {mae}", "green" if mae < 1 else "red")
