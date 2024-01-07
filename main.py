@@ -11,10 +11,10 @@ if __name__ == "__main__":
     # Step 0 - (Re-)Train the Neural Network
     cryptoforecast.retrain()
 
-    # Step 1 - Load the History
+    # Step 1 - Load the Historical Data
     cryptoforecast.load_history()
 
-    # Step 2 - Predict the future
+    # Step 2 - Predict the Future Price of the Ticker
     cryptoforecast.predict_future()
 
     # TODO: Step 3 - Validate the Predictions with a Trend Analysis
