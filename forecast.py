@@ -19,7 +19,7 @@ class CryptoForecast:
         self.args = self.parse_args()
         self.ticker = self.args.coin
         self.prediction_days = self.args.prediction
-        self.retrain = self.args.retrain
+        self.should_retrain = self.args.retrain
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.data = self.get_data(stretch=True)
         self.X, self.y = self.create_x_y_split()
@@ -27,8 +27,8 @@ class CryptoForecast:
         self.model = self.create_nn()
         self.forecast_data = None
 
-    def set_retrain(self, retrain):
-        self.retrain = retrain
+    def set_retrain(self, should_retrain):
+        self.should_retrain = should_retrain
 
     def get_data(self, stretch=False, period="max", interval="1d", stretch_factor=24):
         raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
@@ -84,8 +84,8 @@ class CryptoForecast:
         return path + f"{self.ticker}.h5"
 
     def train(self, X_train, y_train):
-        callbacks = [TqdmCallback(verbose=1)] if self.args.retrain else []
-        if self.args.retrain:
+        callbacks = [TqdmCallback(verbose=1)] if self.should_retrain else []
+        if self.should_retrain:
             self.model.fit(
                 X_train,
                 y_train,
@@ -109,6 +109,11 @@ class CryptoForecast:
         args = argparser.parse_args()
         return args
 
+    def retrain(self):
+        if self.should_retrain:
+            self.load_history()
+            exit()
+
     def load_history(self):
         all_train_pred = pd.DataFrame()
         all_actuals_df = pd.DataFrame()
@@ -129,7 +134,7 @@ class CryptoForecast:
             actuals_fold = pd.DataFrame(actuals, index=idx, columns=["Actual"])
             all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
 
-        if self.retrain:
+        if self.should_retrain:
             self.model.save_weights(self.weight_path)
             cprint(f"Saved model weights to '{self.weight_path}'", "green")
 

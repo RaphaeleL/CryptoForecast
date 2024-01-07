@@ -9,9 +9,7 @@ if __name__ == "__main__":
     cryptoforecast = CryptoForecast()
 
     # Step 0 - (Re-)Train the Neural Network
-    if cryptoforecast.args.retrain:
-        cryptoforecast.load_history()
-        exit()
+    cryptoforecast.retrain()
 
     # Step 1 - Load the History
     cryptoforecast.load_history()
