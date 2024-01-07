@@ -25,6 +25,7 @@ class CryptoForecast:
         self.X, self.y = self.create_x_y_split()
         self.weight_path = self.create_weight_path()
         self.model = self.create_nn()
+        self.forecast_data = None
 
     def set_retrain(self, retrain):
         self.retrain = retrain
@@ -154,4 +155,4 @@ class CryptoForecast:
         next_day = self.data.index[-1] + pd.Timedelta(hours=1)
         future_dates = pd.date_range(start=next_day, periods=pred_h, freq="H")
         res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
-        return res
+        self.forecast_data = res

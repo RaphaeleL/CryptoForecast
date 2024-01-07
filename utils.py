@@ -1,12 +1,14 @@
-
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+from statsmodels.tsa.api import SimpleExpSmoothing
 from matplotlib import pyplot as plt, dates as mdates
 
 
-def plot(cf, data):
+def plot(cf):
     pre_days = cf.prediction_days * 12
     formatter = mdates.DateFormatter("%Y-%m-%d - %H:%M")
-    x = data.head(pre_days).index
-    y = data["Prediction"][:pre_days]
+    x = cf.forecast_data.head(pre_days).index
+    y = cf.forecast_data["Prediction"][:pre_days]
     plt.plot(x, y, label="Prediction", alpha=0.7)
     plt.title(f"{cf.ticker} Future Predictions")
     plt.xlabel("Days")
