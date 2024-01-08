@@ -14,6 +14,8 @@ if __name__ == "__main__":
     #   - Add a 'show()' Method to Visualize the Prediction and the Validation if Agents are used
     #       - For Step 5
     #   - Add a 'validate()' Method to Validate the Prediction
+    #       - Trend Analysis (Up, Down, Sideways, etc.)
+    #       - LLMs (ChatGPT, LLaMa, etc.))
     #       - For Step 3
 
     cf = CryptoForecast()
