@@ -1,6 +1,3 @@
-import pandas as pd
-from sklearn.metrics import mean_squared_error
-from statsmodels.tsa.api import SimpleExpSmoothing
 from matplotlib import pyplot as plt, dates as mdates
 
 
