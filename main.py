@@ -11,8 +11,6 @@ if __name__ == "__main__":
     #       - This will allow the user to use Agents instead of Weight Files
     #       - Number of Agents will be automatically determined by the number of cores
     #       - The Forecast Class will automalically determine if Agents or Weight Files are used
-    #   - Add a 'show()' Method to Visualize the Prediction and the Validation if Agents are used
-    #       - For Step 5
     #   - Add a 'validate()' Method to Validate the Prediction
     #       - Trend Analysis (Up, Down, Sideways, etc.)
     #       - LLMs (ChatGPT, LLaMa, etc.))
@@ -32,4 +30,4 @@ if __name__ == "__main__":
     # Step 3 - Validate the Prediction
 
     # Step 5: Visualize the Prediction
-    plot(cf.prediction_days, cf.forecast_data, cf.ticker)
+    cf.visualize()

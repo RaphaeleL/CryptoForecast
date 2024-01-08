@@ -12,7 +12,7 @@ from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils import cprint
+from utils import cprint, plot
 
 
 class CryptoForecast:
@@ -171,3 +171,6 @@ class CryptoForecast:
         future_dates = pd.date_range(start=next_day, periods=pred_h, freq="H")
         res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
         self.forecast_data = res
+
+    def visualize(self):
+        plot(self.prediction_days, self.forecast_data, self.ticker)
