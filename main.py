@@ -17,8 +17,7 @@ if __name__ == "__main__":
     # Step 2 - Predict the Future Price of the Ticker
     cf.predict_future()
 
-    # TODO: Step 3 - Validate the Predictions with a Trend Analysis
-    # TODO: Step 4 - Validate the Predictions with LLMs
+    # TODO: Step 3 - Validate the Prediction
 
     # Step 5: Visualize the Prediction
     plot(cf.prediction_days, cf.forecast_data, cf.ticker)
