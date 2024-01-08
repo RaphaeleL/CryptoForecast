@@ -34,7 +34,7 @@ You can also start a thread for each phsyical core, with `--agents` and achieve 
 
 ## Model Architecture
 
-- Input Layer: Conv1D layer for sequence feature extraction.
-- Hidden Layers: Two Bidirectional LSTM layers for temporal data processing.
-- Regularization: Dropout and L2 regularization to prevent overfitting.
+- Input Layer: Conv1D Layer for sequence feature extraction.
+- Hidden Layers: Three Bidirectional LSTM Layer for temporal data processing.
+- Regularization: Dropouts and L2 regularization to prevent overfitting.
 - Output Layer: Dense layer for final price prediction.
