@@ -6,19 +6,19 @@ from utils import plot
 
 if __name__ == "__main__":
 
-    cryptoforecast = CryptoForecast()
+    cf = CryptoForecast()
 
     # Step 0 - (Re-)Train the Neural Network
-    cryptoforecast.retrain()
+    cf.retrain()
 
     # Step 1 - Load the Historical Data
-    cryptoforecast.load_history()
+    cf.load_history()
 
     # Step 2 - Predict the Future Price of the Ticker
-    cryptoforecast.predict_future()
+    cf.predict_future()
 
     # TODO: Step 3 - Validate the Predictions with a Trend Analysis
     # TODO: Step 4 - Validate the Predictions with LLMs
 
     # Step 5: Visualize the Prediction
-    plot(cryptoforecast)
+    plot(cf.prediction_days, cf.forecast_data, cf.ticker)

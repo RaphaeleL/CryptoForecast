@@ -1,15 +1,15 @@
 from matplotlib import pyplot as plt, dates as mdates
 
 
-def plot(cf):
-    pre_days = cf.prediction_days * 12
+def plot(prediction_days, forecast_data, ticker):
+    pre_days = prediction_days * 12
     formatter = mdates.DateFormatter("%Y-%m-%d - %H:%M")
-    x = cf.forecast_data.head(pre_days).index
-    y = cf.forecast_data["Prediction"][:pre_days]
+    x = forecast_data.head(pre_days).index
+    y = forecast_data["Prediction"][:pre_days]
     plt.plot(x, y, label="Prediction", alpha=0.7)
-    plt.title(f"{cf.ticker} Future Predictions")
+    plt.title(f"{ticker} Future Predictions")
     plt.xlabel("Days")
-    plt.ylabel(f"Price in {cf.ticker.split('-')[1]}")
+    plt.ylabel(f"Price in {ticker.split('-')[1]}")
     plt.legend()
     plt.grid(True)
     plt.gca().xaxis_date()
