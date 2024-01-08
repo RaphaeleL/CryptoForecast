@@ -18,7 +18,9 @@ Run the script from the command line. You can specify the cryptocurrency, batch 
 python forecast.py --coin ETH-USD
 ```
 
-If you want to Retrain the Weights of the Coin, or want to create a new Weight File for a new Ticker, then just append `--retrain`.
+If you want to Retrain the Weights of the Coin, or want to create a new Weight File for a new Ticker, then just append `--retrain`. 
+
+You can also start a thread for each phsyical core, with `--agents` and achieve n results simultaneously. 
 
 ### Parameters
 
