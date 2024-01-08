@@ -10,6 +10,7 @@ from keras.regularizers import l2
 from keras.optimizers.legacy import Adam
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from utils import cprint
 
@@ -105,7 +106,7 @@ class CryptoForecast:
         argparser = argparse.ArgumentParser(description="Cryptocurrency Forecast")
         argparser.add_argument("--coin", type=str, default="LTC-EUR")
         argparser.add_argument("--batch_size", type=int, default=1024)
-        argparser.add_argument("--epochs", type=int, default=100)
+        argparser.add_argument("--epochs", type=int, default=200)
         argparser.add_argument("--folds", type=int, default=6)
         argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
@@ -124,18 +125,24 @@ class CryptoForecast:
         cprint("Load History", "yellow")
 
         kf = KFold(n_splits=self.args.folds, shuffle=False)
-        for train_index, test_index in kf.split(self.X):
+
+        def train_fold(train_index, test_index):
             X_train, X_test, y_train, y_test = self.split(self.X, self.y, train_index, test_index)
             self.train(X_train, y_train)
             pred = self.scaler.inverse_transform(self.model.predict(X_test, verbose=0))
 
             idx = self.data.index[test_index].to_pydatetime()
             train_pred_fold = pd.DataFrame(pred, index=idx, columns=["Prediction"])
-            all_train_pred = pd.concat([all_train_pred, train_pred_fold])
-
             actuals = self.scaler.inverse_transform(y_test.reshape(-1, 1))
             actuals_fold = pd.DataFrame(actuals, index=idx, columns=["Actual"])
-            all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
+            return train_pred_fold, actuals_fold
+
+        with ThreadPoolExecutor(max_workers=self.args.folds) as executor:
+            futures = [executor.submit(train_fold, train_index, test_index) for train_index, test_index in kf.split(self.X)]
+            for future in as_completed(futures):
+                train_pred_fold, actuals_fold = future.result()
+                all_train_pred = pd.concat([all_train_pred, train_pred_fold])
+                all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
 
         if self.should_retrain:
             self.model.save_weights(self.weight_path)
