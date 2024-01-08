@@ -1,5 +1,6 @@
 import os
 import argparse
+import threading
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -11,8 +12,9 @@ from keras.optimizers.legacy import Adam
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from multiprocessing import cpu_count
 
-from utils import cprint, plot
+from utils import cprint, plot, plot_multiple
 
 
 class CryptoForecast:
@@ -110,19 +112,15 @@ class CryptoForecast:
         argparser.add_argument("--folds", type=int, default=6)
         argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
+        argparser.add_argument("--agents", action="store_true")
         args = argparser.parse_args()
         return args
 
-    def retrain(self):
-        if self.should_retrain:
-            self.load_history()
-            exit()
-
-    def load_history(self):
+    def load_history(self, agent=-1, should_save=True):
         all_train_pred = pd.DataFrame()
         all_actuals_df = pd.DataFrame()
 
-        cprint("Load History", "yellow")
+        cprint(f"Load History for Agent {agent}" if agent >= 0 else "Load History", "yellow")
 
         kf = KFold(n_splits=self.args.folds, shuffle=False)
 
@@ -144,13 +142,13 @@ class CryptoForecast:
                 all_train_pred = pd.concat([all_train_pred, train_pred_fold])
                 all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
 
-        if self.should_retrain:
+        if self.should_retrain and should_save and agent >= 0:
             self.model.save_weights(self.weight_path)
             cprint(f"Saved model weights to '{self.weight_path}'", "green")
 
         return all_train_pred, all_actuals_df
 
-    def predict_future(self):
+    def predict_future(self, agent=-1):
         def prepare_future_input():
             input_window_size = self.args.prediction * 24
             if isinstance(self.X, pd.DataFrame):
@@ -162,7 +160,7 @@ class CryptoForecast:
 
         pred_h = self.prediction_days * 24
 
-        cprint("Predict Future", "purple")
+        cprint(f"Predict Future for Agent {agent}" if agent >= 0 else "Predict Future", "purple")
         self.train(self.X, self.y)
         future_input = prepare_future_input()
         future_prediction = self.model.predict(future_input, verbose=0)
@@ -171,6 +169,32 @@ class CryptoForecast:
         future_dates = pd.date_range(start=next_day, periods=pred_h, freq="H")
         res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
         self.forecast_data = res
+
+    def use_agents(self):
+        num_cores = cpu_count()
+        agents = []
+        forecast_instances = []
+
+        def task(forecast_instance, agent_id):
+            forecast_instance.load_history(agent_id, should_save=False)
+            forecast_instance.predict_future(agent_id)
+
+        for agent_id in range(num_cores):
+            forecast_instance = CryptoForecast()
+            forecast_instance.set_retrain(True)
+            forecast_instances.append(forecast_instance)
+
+            agent = threading.Thread(target=task, args=(forecast_instance, agent_id+1))
+            agents.append(agent)
+            agent.start()
+
+        for agent in agents:
+            agent.join()
+
+        return forecast_instances
+
+    def visualize_agents(self, results):
+        plot_multiple(results)
 
     def visualize(self):
         plot(self.prediction_days, self.forecast_data, self.ticker)
