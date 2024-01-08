@@ -64,8 +64,11 @@ class CryptoForecast:
         model = Sequential(
             [
                 Conv1D(64, 1, activation="relu", input_shape=(1, self.X.shape[2])),
-                Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
-                Bidirectional(LSTM(50, activation="relu", return_sequences=True)),
+                Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+                Dropout(0.2),
+                Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+                Dropout(0.2),
+                Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
                 Dropout(0.2),
                 Flatten(),
                 Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
