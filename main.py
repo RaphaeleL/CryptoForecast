@@ -15,9 +15,8 @@ def main(cf):
     #         mit der Vorhersage darauf einzugehen. Eine Vorhersage MUSS
     #         weniger als 60 Sekunden dauern.
     #   - VALIDATION
-    #       - Trend Analysis (Up, Down, Sideways, etc.)
-    #       - LLMs (ChatGPT, LLaMa, etc.))
-    #       - For Step 3
+    #       - Trend Validierung mit einem LLM
+    #       - Trend Analyse
 
     if cf.should_retrain:
         cf.load_history()
