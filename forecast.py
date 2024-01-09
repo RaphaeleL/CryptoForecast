@@ -1,4 +1,5 @@
 import os
+import time
 import argparse
 import threading
 import numpy as np
@@ -18,13 +19,14 @@ from utils import cprint, plot, plot_multiple
 
 
 class CryptoForecast:
-    def __init__(self):
+    def __init__(self, minutely=False):
+        self.start_time = time.time()
         self.args = self.parse_args()
         self.ticker = self.args.coin
         self.prediction_days = self.args.prediction
         self.should_retrain = self.args.retrain
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.data = self.get_data(stretch=True)
+        self.data = self.get_data(stretch=not minutely)
         self.X, self.y = self.create_x_y_split()
         self.weight_path = self.create_weight_path()
         self.model = self.create_nn()
@@ -34,15 +36,21 @@ class CryptoForecast:
         self.should_retrain = should_retrain
 
     def get_data(self, stretch=False, period="max", interval="1d", stretch_factor=24):
-        raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
+        if not self.args.minutely:
+            raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
+            data = raw_data[["Close"]]
+            data.reset_index(inplace=True)
+            data.set_index("Date", inplace=True)
+            if stretch:
+                data.index = pd.to_datetime(data.index)
+                interval = f"{int(24 / stretch_factor)}H"
+                stretched = data.resample(interval).interpolate(method="time")
+                return stretched
+            return data
+        raw_data = yf.download(self.ticker, period=period, interval="1m", progress=False)
         data = raw_data[["Close"]]
         data.reset_index(inplace=True)
-        data.set_index("Date", inplace=True)
-        if stretch:
-            data.index = pd.to_datetime(data.index)
-            interval = f"{int(24 / stretch_factor)}H"
-            stretched = data.resample(interval).interpolate(method="time")
-            return stretched
+        data.set_index("Datetime", inplace=True)
         return data
 
     def create_x_y_split(self):
@@ -113,6 +121,7 @@ class CryptoForecast:
         argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
         argparser.add_argument("--agents", action="store_true")
+        argparser.add_argument("--minutely", action="store_true")
         args = argparser.parse_args()
         return args
 
@@ -198,3 +207,10 @@ class CryptoForecast:
 
     def visualize(self):
         plot(self.prediction_days, self.forecast_data, self.ticker)
+
+    def stop_time(self, use_case=""):
+        time_diff = round(time.time() - self.start_time)
+        color = "green"
+        if not time_diff < 60:
+            color = "red"
+        cprint(f"Used {time_diff} sec {use_case}", color)
