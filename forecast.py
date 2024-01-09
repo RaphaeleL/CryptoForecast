@@ -1,5 +1,6 @@
 import os
 import time
+import pyfiglet
 import argparse
 import threading
 import numpy as np
@@ -209,8 +210,12 @@ class CryptoForecast:
         plot(self.prediction_days, self.forecast_data, self.ticker)
 
     def stop_time(self, use_case=""):
-        time_diff = round(time.time() - self.start_time)
+        time_diff = round((time.time() - self.start_time)/60, 1)
         color = "green"
-        if not time_diff < 60:
+        if not time_diff < 1.0:
             color = "red"
-        cprint(f"Used {time_diff} sec {use_case}", color)
+        message = f"* Used {time_diff} min {use_case} *"
+        border = "*" * len(message)
+        cprint(border, color)
+        cprint(message, color)
+        cprint(border, color)
