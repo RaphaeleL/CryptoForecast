@@ -14,6 +14,14 @@ def main(cf):
     #         kann rechtzeitig die Folgen erkannt werden um entsprechend,
     #         mit der Vorhersage darauf einzugehen. Eine Vorhersage MUSS
     #         weniger als 60 Sekunden dauern.
+    #       - Sollte die Minütlichen Vorhersagen n - m mal hintereinander
+    #         in Folge steigen / fallen, dann ist das ein Indiz dafür,
+    #         dass eine News den Trend beeinflusst. Hierbei steht n für die
+    #         maximale Anzahl an aufeinander folgender steigender / fallender
+    #         Vorhersagen und m für eine dynamische Variable welche das
+    #         Verhältnis zwischen n und m bestimmt. Je höher n, desto
+    #         höher m. Je niedriger n, desto niedriger m. m kann auch
+    #         0 sein, wodurch n beliebig hoch sein kann.
     #   - VALIDATION
     #       - Trend Validierung mit einem LLM
     #       - Trend Analyse
