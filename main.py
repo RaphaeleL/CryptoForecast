@@ -3,15 +3,21 @@
 from forecast import CryptoForecast
 
 
-if __name__ == "__main__":
+def main(cf):
 
-    # TODO:
+    # TODO
+    #   - NEWS
+    #       - Ein weiteres Feature signalisiert den Trend, wodurch
+    #         News (also der Trend) beeinflusst werden kann.
+    #       - Minütliche Daten der letzten 7 Tage sind mit Yahoo möglich.
+    #         Damit kann eine News zwar nicht eingearbeitet werden. Jedoch,
+    #         kann rechtzeitig die Folgen erkannt werden um entsprechend,
+    #         mit der Vorhersage darauf einzugehen. Eine Vorhersage MUSS
+    #         weniger als 60 Sekunden dauern.
     #   - VALIDATION
     #       - Trend Analysis (Up, Down, Sideways, etc.)
     #       - LLMs (ChatGPT, LLaMa, etc.))
     #       - For Step 3
-
-    cf = CryptoForecast()
 
     if cf.should_retrain:
         cf.load_history()
@@ -24,3 +30,7 @@ if __name__ == "__main__":
         cf.load_history()
         cf.predict_future()
         cf.visualize()
+
+
+if __name__ == "__main__":
+    main(CryptoForecast())
