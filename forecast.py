@@ -1,6 +1,5 @@
 import os
 import time
-import pyfiglet
 import argparse
 import threading
 import numpy as np
@@ -122,6 +121,7 @@ class CryptoForecast:
         argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
         argparser.add_argument("--agents", action="store_true")
+        argparser.add_argument("--num_agents", type=int, default=cpu_count())
         argparser.add_argument("--minutely", action="store_true")
         args = argparser.parse_args()
         return args
@@ -181,7 +181,6 @@ class CryptoForecast:
         self.forecast_data = res
 
     def use_agents(self):
-        num_cores = cpu_count()
         agents = []
         forecast_instances = []
 
@@ -189,7 +188,7 @@ class CryptoForecast:
             forecast_instance.load_history(agent_id, should_save=False)
             forecast_instance.predict_future(agent_id)
 
-        for agent_id in range(num_cores):
+        for agent_id in range(self.args.num_agents):
             forecast_instance = CryptoForecast()
             forecast_instance.set_retrain(True)
             forecast_instances.append(forecast_instance)
@@ -210,11 +209,11 @@ class CryptoForecast:
         plot(self.prediction_days, self.forecast_data, self.ticker)
 
     def stop_time(self, use_case=""):
-        time_diff = round((time.time() - self.start_time)/60, 1)
+        time_diff = round((time.time() - self.start_time), 1)
         color = "green"
-        if not time_diff < 1.0:
+        if not time_diff <= 60.0:
             color = "red"
-        message = f"* Used {time_diff} min {use_case} *"
+        message = f"* Used {time_diff} sec {use_case} *"
         border = "*" * len(message)
         cprint(border, color)
         cprint(message, color)
