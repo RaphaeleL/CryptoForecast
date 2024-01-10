@@ -30,7 +30,8 @@ You can also start a thread for each phsyical core, with `--agents` and achieve 
 - `--folds`: Number of Folds for the KFold (default: 5).
 - `--prediction`: Number of days to predict. Use -1 for full test data prediction (default: -1).
 - `--retrain`: (Re-) Train the Ticker. 
-- `--agents`: Use n (=Number of cores) Threads, retrain the Model parallel and Predict the Future.
+- `--num_agents`: Defines the Number of Agents, the default Value is the Number of Cores.
+- `--agents`: Use `--num_agents` Threads, retrain the Model parallel and Predict the Future.
 
 ## Model Architecture
 
