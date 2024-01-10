@@ -3,7 +3,7 @@
 from forecast import CryptoForecast
 
 
-def main(cf):
+def main(cf=CryptoForecast()):
 
     if cf.should_retrain:
         cf.load_history()
@@ -22,4 +22,4 @@ def main(cf):
 
 
 if __name__ == "__main__":
-    main(CryptoForecast())
+    main()
