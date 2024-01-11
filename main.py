@@ -12,19 +12,18 @@ def main(cf=CryptoForecast()):
 
     if cf.args.debug:
         cf.backtest()
-        cf.stop_time("for backtesting")
+        cf.stop_time("for backtesting with Weights.")
         exit()
-
-
-    if cf.args.agents:
-        results = cf.use_agents()
-        cf.stop_time("to predict the future with Agents.")
-        cf.visualize_agents(results)
     else:
-        cf.load_history()
-        cf.predict_future()
-        cf.stop_time("to predict the future with Weights.")
-        cf.visualize()
+        if cf.args.agents:
+            results = cf.use_agents()
+            cf.stop_time("to predict the future with Agents.")
+            cf.visualize_agents(results)
+        else:
+            cf.load_history()
+            cf.predict_future()
+            cf.stop_time("to predict the future with Weights.")
+            cf.visualize()
 
 
 if __name__ == "__main__":

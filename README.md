@@ -32,7 +32,7 @@ You can also start a thread for each phsyical core, with `--agents` and achieve 
 - `--retrain`: (Re-) Train the Ticker. 
 - `--num_agents`: Defines the Number of Agents, the default Value is the Number of Cores.
 - `--agents`: Use `--num_agents` Threads, retrain the Model parallel and Predict the Future.
-- `--debug`: Predict the History and see how the Model is working. 
+- `--debug`: Predict the History and see how the Model is working.
 
 ## Model Architecture
 

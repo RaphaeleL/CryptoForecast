@@ -245,7 +245,4 @@ class CryptoForecast:
         )
         actual_data = backtest_period[["Close"]]
 
-        # Compare predictions with actual data
-        # ...
-
         plot_backtest(self.forecast_data, actual_data, self.ticker)
