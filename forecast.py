@@ -1,5 +1,6 @@
 import os
 import time
+import datetime
 import argparse
 import threading
 import numpy as np
@@ -15,13 +16,14 @@ from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
 
-from utils import cprint, plot, plot_multiple
+from utils import cprint, plot, plot_multiple, plot_backtest
 
 
 class CryptoForecast:
     def __init__(self, minutely=False):
         self.start_time = time.time()
         self.args = self.parse_args()
+        self.end_date = self.get_end_date()
         self.ticker = self.args.coin
         self.prediction_days = self.args.prediction
         self.should_retrain = self.args.retrain
@@ -51,6 +53,8 @@ class CryptoForecast:
         data = raw_data[["Close"]]
         data.reset_index(inplace=True)
         data.set_index("Datetime", inplace=True)
+        if self.args.debug:
+            data = data[data.index <= self.end_date]
         return data
 
     def create_x_y_split(self):
@@ -123,8 +127,17 @@ class CryptoForecast:
         argparser.add_argument("--agents", action="store_true")
         argparser.add_argument("--num_agents", type=int, default=cpu_count())
         argparser.add_argument("--minutely", action="store_true")
+        argparser.add_argument("--debug", action="store_true")
         args = argparser.parse_args()
         return args
+
+    def get_end_date(self):
+        today = datetime.date(
+                datetime.datetime.now().year,
+                datetime.datetime.now().month,
+                datetime.datetime.now().day - 7
+            )
+        return today
 
     def load_history(self, agent=-1, should_save=True):
         all_train_pred = pd.DataFrame()
@@ -218,3 +231,21 @@ class CryptoForecast:
         cprint(border, color)
         cprint(message, color)
         cprint(border, color)
+
+    def backtest(self):
+        self.load_history()
+        self.predict_future()
+
+        backtest_period = yf.download(
+                self.ticker,
+                start=self.end_date,
+                end=datetime.datetime.now(),
+                interval="1d",
+                progress=False
+        )
+        actual_data = backtest_period[["Close"]]
+
+        # Compare predictions with actual data
+        # ...
+
+        plot_backtest(self.forecast_data, actual_data, self.ticker)

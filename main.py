@@ -10,6 +10,12 @@ def main(cf=CryptoForecast()):
         cf.stop_time("to retrain the model")
         exit()
 
+    if cf.args.debug:
+        cf.backtest()
+        cf.stop_time("for backtesting")
+        exit()
+
+
     if cf.args.agents:
         results = cf.use_agents()
         cf.stop_time("to predict the future with Agents.")
