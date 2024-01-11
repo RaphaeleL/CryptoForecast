@@ -244,5 +244,7 @@ class CryptoForecast:
                 progress=False
         )
         actual_data = backtest_period[["Close"]]
+        return actual_data
 
+    def visualize_backtest(self, actual_data):
         plot_backtest(self.forecast_data, actual_data, self.ticker)

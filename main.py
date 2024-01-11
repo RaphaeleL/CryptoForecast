@@ -11,8 +11,9 @@ def main(cf=CryptoForecast()):
         exit()
 
     if cf.args.debug:
-        cf.backtest()
-        cf.stop_time("for backtesting with Weights.")
+        actual_data = cf.backtest()
+        cf.stop_time("for backtesting.")
+        cf.visualize_backtest(actual_data)
         exit()
     else:
         if cf.args.agents:
