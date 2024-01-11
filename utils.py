@@ -47,6 +47,20 @@ def plot(prediction_days, forecast_data, ticker):
     plt.show()
 
 
+def plot_backtest(forecast_data, actual_data, ticker):
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(forecast_data.index,
+            forecast_data["Prediction"], label="Predicted Data", alpha=0.7)
+    ax.plot(actual_data.index,
+            actual_data["Close"], label="Actual Data", alpha=0.7)
+    ax.set_title(f"{ticker} Backtest Results")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Price")
+    style_plot(ax)
+    ax.get_xaxis().set_visible(False)
+    plt.show()
+
+
 def cprint(to_print, color, end="\n"):
     colors = {
         "red": "\033[91m",
@@ -58,15 +72,3 @@ def cprint(to_print, color, end="\n"):
         "end": "\033[0m",
     }
     print(f"{colors.get(color, '')}{to_print}{colors['end']}", end=end)
-
-
-def plot_backtest(forecast_data, actual_data, ticker):
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(forecast_data.index, forecast_data["Prediction"], label="Predicted Data", alpha=0.7)
-    ax.plot(actual_data.index, actual_data["Close"], label="Actual Data", alpha=0.7)
-    ax.set_title(f"{ticker} Backtest Results")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Price")
-    style_plot(ax)
-    ax.get_xaxis().set_visible(False)
-    plt.show()

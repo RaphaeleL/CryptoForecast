@@ -221,6 +221,9 @@ class CryptoForecast:
     def visualize(self):
         plot(self.prediction_days, self.forecast_data, self.ticker)
 
+    def visualize_backtest(self, actual_data):
+        plot_backtest(self.forecast_data, actual_data, self.ticker)
+
     def stop_time(self, use_case=""):
         time_diff = round((time.time() - self.start_time), 1)
         color = "green"
@@ -245,6 +248,3 @@ class CryptoForecast:
         )
         actual_data = backtest_period[["Close"]]
         return actual_data
-
-    def visualize_backtest(self, actual_data):
-        plot_backtest(self.forecast_data, actual_data, self.ticker)
