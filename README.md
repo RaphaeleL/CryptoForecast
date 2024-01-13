@@ -20,8 +20,6 @@ python forecast.py --coin ETH-USD
 
 If you want to Retrain the Weights of the Coin, or want to create a new Weight File for a new Ticker, then just append `--retrain`. 
 
-You can also start a thread for each phsyical core, with `--agents` and achieve n results simultaneously. 
-
 ### Parameters
 
 - `--coin`: Cryptocurrency symbol (default: eth for Ethereum).
@@ -30,9 +28,8 @@ You can also start a thread for each phsyical core, with `--agents` and achieve 
 - `--folds`: Number of Folds for the KFold (default: 5).
 - `--prediction`: Number of days to predict. Use -1 for full test data prediction (default: -1).
 - `--retrain`: (Re-) Train the Ticker. 
-- `--num_agents`: Defines the Number of Agents, the default Value is the Number of Cores.
-- `--agents`: Use `--num_agents` Threads, retrain the Model parallel and Predict the Future.
 - `--debug`: Predict the History with Weights and see how the Model is working.
+- `--auto`: Use all Available Tickers (for those with a Weight File) and Predict the Future for them.
 
 ## Model Architecture
 
