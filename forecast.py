@@ -2,7 +2,6 @@ import os
 import time
 import datetime
 import argparse
-import threading
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -14,20 +13,22 @@ from keras.optimizers.legacy import Adam
 from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from multiprocessing import cpu_count
 
-from utils import cprint, plot, plot_multiple, plot_backtest
+from utils import cprint, plot, plot_backtest, get_colored_text
 
 
 class CryptoForecast:
-    def __init__(self, minutely=False):
+    def __init__(self, ticker=None, minutely=False):
         self.start_time = time.time()
+        self.duration = time.time()
         self.args = self.parse_args()
         self.end_date = self.get_end_date()
-        self.ticker = self.args.coin
+        self.ticker = self.args.coin if ticker is None else ticker
         self.prediction_days = self.args.prediction
         self.should_retrain = self.args.retrain
         self.scaler = MinMaxScaler(feature_range=(0, 1))
+        self.stretch_factor = 24
+        self.strechted = not minutely
         self.data = self.get_data(stretch=not minutely)
         self.X, self.y = self.create_x_y_split()
         self.weight_path = self.create_weight_path()
@@ -37,7 +38,8 @@ class CryptoForecast:
     def set_retrain(self, should_retrain):
         self.should_retrain = should_retrain
 
-    def get_data(self, stretch=False, period="max", interval="1d", stretch_factor=24):
+    def get_data(self, stretch=False, period="max", interval="1d"):
+        stretch_factor = self.stretch_factor
         if not self.args.minutely:
             raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
             data = raw_data[["Close"]]
@@ -124,10 +126,9 @@ class CryptoForecast:
         argparser.add_argument("--folds", type=int, default=6)
         argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
-        argparser.add_argument("--agents", action="store_true")
-        argparser.add_argument("--num_agents", type=int, default=cpu_count())
         argparser.add_argument("--minutely", action="store_true")
         argparser.add_argument("--debug", action="store_true")
+        argparser.add_argument("--auto", action="store_true")
         args = argparser.parse_args()
         return args
 
@@ -142,8 +143,6 @@ class CryptoForecast:
     def load_history(self, agent=-1, should_save=True):
         all_train_pred = pd.DataFrame()
         all_actuals_df = pd.DataFrame()
-
-        cprint(f"Load History for Agent {agent}" if agent >= 0 else "Load History", "yellow")
 
         kf = KFold(n_splits=self.args.folds, shuffle=False)
 
@@ -171,7 +170,7 @@ class CryptoForecast:
 
         return all_train_pred, all_actuals_df
 
-    def predict_future(self, agent=-1):
+    def predict_future(self):
         def prepare_future_input():
             input_window_size = self.args.prediction * 24
             if isinstance(self.X, pd.DataFrame):
@@ -183,7 +182,6 @@ class CryptoForecast:
 
         pred_h = self.prediction_days * 24
 
-        cprint(f"Predict Future for Agent {agent}" if agent >= 0 else "Predict Future", "purple")
         self.train(self.X, self.y)
         future_input = prepare_future_input()
         future_prediction = self.model.predict(future_input, verbose=0)
@@ -193,47 +191,38 @@ class CryptoForecast:
         res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
         self.forecast_data = res
 
-    def use_agents(self):
-        agents = []
-        forecast_instances = []
-
-        def task(forecast_instance, agent_id):
-            forecast_instance.load_history(agent_id, should_save=False)
-            forecast_instance.predict_future(agent_id)
-
-        for agent_id in range(self.args.num_agents):
-            forecast_instance = CryptoForecast()
-            forecast_instance.set_retrain(True)
-            forecast_instances.append(forecast_instance)
-
-            agent = threading.Thread(target=task, args=(forecast_instance, agent_id+1))
-            agents.append(agent)
-            agent.start()
-
-        for agent in agents:
-            agent.join()
-
-        return forecast_instances
-
-    def visualize_agents(self, results):
-        plot_multiple(results)
-
     def visualize(self):
-        plot(self.prediction_days, self.forecast_data, self.ticker)
+        plot(self.forecast_data, self.ticker)
 
     def visualize_backtest(self, actual_data):
         plot_backtest(self.forecast_data, actual_data, self.ticker)
 
-    def stop_time(self, use_case=""):
-        time_diff = round((time.time() - self.start_time), 1)
-        color = "green"
-        if not time_diff <= 60.0:
-            color = "red"
-        message = f"* Used {time_diff} sec {use_case} *"
-        border = "*" * len(message)
-        cprint(border, color)
-        cprint(message, color)
-        cprint(border, color)
+    def stop_time(self):
+        self.duration = round((time.time() - self.start_time), 1)
+
+    def show_result(self):
+
+        # Green is positive, e.g. the duration is less than 60 seconds or we should buy
+        # Red is negative, e.g. the duration is more than 60 seconds or we should sell
+        # Yellow is a fact, e.g. the ticker, the date
+        # Purple is the rise or fall of the prediction
+
+        ticker = get_colored_text(self.ticker, "yellow")
+        duration = "used " + str(get_colored_text(f"{self.duration}s", "green" if self.duration < 60 else "red"))
+        stretch = f"with {get_colored_text(f'stretched data (x{self.stretch_factor})', 'purple')}" if self.strechted and self.stretch_factor < 24 else ""
+        current_fmt, new_fmt = "%Y-%m-%d %H:%M:%S" if not self.args.minutely else "%Y-%m-%d %H:%M:%S%z", "%d. %b %Y - %H:%M"
+        min_value = self.forecast_data["Prediction"].min()
+        min_index = self.forecast_data[self.forecast_data["Prediction"] == min_value].index[0]
+        min_index = datetime.datetime.strptime(str(min_index), current_fmt).strftime(new_fmt)
+        min_str = f"{min_value:.2f} {ticker.split('-')[1]}"
+        min_message = "with a minimum of " + get_colored_text(f"{min_str}", "green") + " at " + get_colored_text(f"{min_index}", "yellow")
+        max_value = self.forecast_data["Prediction"].max()
+        max_index = self.forecast_data[self.forecast_data["Prediction"] == max_value].index[0]
+        max_index = datetime.datetime.strptime(str(max_index), current_fmt).strftime(new_fmt)
+        max_str = f"{max_value:.2f} {ticker.split('-')[1]}"
+        max_message = "and maximum of " + get_colored_text(f"{max_str}", "red") + " at " + get_colored_text(f"{max_index}", "yellow")
+        p_change = f"{get_colored_text('(' + format((max_value - min_value) / min_value * 100, '.2f') + '%)', 'purple')}"
+        print("****",  ticker, p_change, duration, min_message, max_message, stretch)
 
     def backtest(self):
         self.load_history()
