@@ -214,7 +214,7 @@ class CryptoForecast:
 
         print(ticker)
         min_m, max_m = "├── Minimum (Logic)", "├── Maximum (Logic)"
-        rise_m, dur_m = "├── Trend", "├── Duration"
+        rise_m, dur_m = "├── Trend", "├── Duration (Prediction)"
         gmin_m, gmax_m = "├── Minimum (Global)", "├── Maximum (Global)"
         print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{min_index}", "yellow"), "with", get_colored_text(f"{min_str}", "green"))
         print(f"{gmin_m} {space(gmin_m, 4)}", get_colored_text(f"{global_min_index}", "yellow"), "with", get_colored_text(f"{global_min_str}", "green"))
