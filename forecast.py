@@ -201,10 +201,12 @@ class CryptoForecast:
     def stop_time(self):
         self.duration = round((time.time() - self.start_time), 1)
 
-    def show_result(self):
+    def show_result(self, plattform="Coinbase"):
+        fees = {"Coinbase": 0.05}
         ticker = get_colored_text(yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split('-')[1] + ")", "yellow")
         min_index, min_value, max_index, max_value, global_min_index, global_min_value, global_max_index, global_max_value = extract_min_max(self)
-        change = (((max_value - min_value) / min_value) - 0.05) * 100
+        change_l = (((max_value - min_value) / min_value) - fees[plattform]) * 100
+        change_g = (((global_max_value - global_min_value) / global_min_value) - 0.05) * 100
 
         min_str = f"{min_value:.2f} {self.ticker.split('-')[1]}"
         max_str = f"{max_value:.2f} {self.ticker.split('-')[1]}"
@@ -212,16 +214,17 @@ class CryptoForecast:
         global_min_str = f"{global_min_value:.2f} {self.ticker.split('-')[1]}"
         global_max_str = f"{global_max_value:.2f} {self.ticker.split('-')[1]}"
 
+        min_m, max_m = "    ├── Minimum", "    ├── Maximum"
+        trend_m = f"    └── Trend {get_colored_text(f'({plattform} Fee {round(fees[plattform] * 100)}%)', 'cyan')}"
         print(ticker)
-        min_m, max_m = "├── Minimum (Logic)", "├── Maximum (Logic)"
-        rise_m, dur_m = "├── Trend", "├── Duration (Prediction)"
-        gmin_m, gmax_m = "├── Minimum (Global)", "├── Maximum (Global)"
-        print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{min_index}", "yellow"), "with", get_colored_text(f"{min_str}", "green"))
-        print(f"{gmin_m} {space(gmin_m, 4)}", get_colored_text(f"{global_min_index}", "yellow"), "with", get_colored_text(f"{global_min_str}", "green"))
-        print(f"{max_m} {space(max_m, 4)}", get_colored_text(f"{max_index}", "yellow"), "with", get_colored_text(f"{max_str}", "red"))
-        print(f"{gmax_m} {space(gmax_m, 4)}", get_colored_text(f"{global_max_index}", "yellow"), "with", get_colored_text(f"{global_max_str}", "red"))
-        print(f"{rise_m} {space(rise_m, 4)}", get_colored_text(f"{format(change, '.2f') + '%'}", "green" if change > 0 else "red"))
-        print(f"{dur_m} {space(dur_m, 4)}", f"{self.duration}s")
+        print(f"└── Logic {get_colored_text('(Buy recommendation based on this graph)', 'cyan')}")
+        print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{format(change_l, '.2f') + '%'}", "green" if change_l > 0 else "red"))
+        print(f"{max_m} {space(max_m, 4)}", get_colored_text(f"{min_index}", "yellow"), "with", get_colored_text(f"{min_str}", "green"))
+        print(f"{trend_m} {space(trend_m, 4)}", get_colored_text(f"{max_index}", "yellow"), "with", get_colored_text(f"{max_str}", "red"))
+        print(f"└── Global {get_colored_text('(where is the high and low point)', 'cyan')}")
+        print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{format(change_g, '.2f') + '%'}", "green" if change_g > 0 else "red"))
+        print(f"{max_m} {space(max_m, 4)}", get_colored_text(f"{global_min_index}", "yellow"), "with", get_colored_text(f"{global_min_str}", "green"))
+        print(f"{trend_m} {space(trend_m, 4)}", get_colored_text(f"{global_max_index}", "yellow"), "with", get_colored_text(f"{global_max_str}", "red"))
 
     def backtest(self):
         self.load_history()

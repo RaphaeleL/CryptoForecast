@@ -7,20 +7,20 @@ from matplotlib import pyplot as plt
 from utils import get_colored_text
 
 keys = ["Monte Carlo Simulation", "Trend Analysis", "Asking a LLM"]
-space = lambda x, y: "." * (len(max(keys, key=len)) - len(x) + 5 + y)
+space = lambda x, y: "." * (len(max(keys, key=len)) - len(x) + 7 + y)
 
 
 def convert_result_to_text(text):
-    if text:
+    if text == None:
+        return get_colored_text("n/a", "purple")
+    elif text:
         return get_colored_text("passed", "green")
     elif not text:
         return get_colored_text("failed", "red")
-    else:
-        return get_colored_text("n/a", "yellow")
 
 
 def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_interval=0.95, plot=False):
-    start_time = time.time()
+    print(f"    ├── {keys[0]} {space(keys[0], -4)} ", end="")
     last_price = cf.data['Close'][-1]
     simulation_df = pd.DataFrame()
     # TODO: Thread this for loop
@@ -45,38 +45,32 @@ def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_int
     # NOTE: Should we just use both? To double check?
     # actual_price = cf.forecast_data["Prediction"].iloc[0]
     actual_price = yf.Ticker(cf.ticker).history(period="1d")["Close"][0]
-    end_time = time.time()
 
     if plot:
         plt.title(f"{cf.ticker} Monte Carlo Simulation")
         plt.plot(simulation_df)
         plt.show()
 
-    return (lower_bound <= actual_price).any() and (actual_price <= upper_bound).any(), end_time - start_time
+    res = (lower_bound <= actual_price).any() and (actual_price <= upper_bound).any()
+    print(convert_result_to_text(res))
+    return res 
 
 
 def trend_analysis(cf):
+    print(f"    ├── {keys[1]} {space(keys[1], -4)} ", end="")
     # TODO: Swing Trading also Stündliche Analyse
-    start_time = time.time()
-    end_time = time.time()
-    return False, end_time - start_time
+    print(convert_result_to_text(None))
 
 
 def ask_llm(cf):
+    print(f"    └── {keys[2]} {space(keys[2], -4)} ", end="")
     # TODO: OpenAI ChatGPT API
-    start_time = time.time()
-    end_time = time.time()
-    return False, end_time - start_time
+    print(convert_result_to_text(None))
 
 
 def validate(cf):
-    mcs, ta, llm = monte_carlo_simulation(cf, 5000, 365, 0.95, False), trend_analysis(cf), ask_llm(cf)
-    results = {
-            "Monte Carlo Simulation": mcs,
-            "Trend Analysis": ta,
-            "Asking a LLM": llm
-    }
+    print("└── Validation")
 
-    for index, key in enumerate(keys):
-        delim = "└──" if index == len(keys) - 1 else "├──"
-        print(f"{delim} {key} {space(key, 0)} {convert_result_to_text(results[key][0])} ({round(results[key][1], 1)}s)")
+    monte_carlo_simulation(cf, 5000, 365, 0.95, False)
+    trend_analysis(cf)
+    ask_llm(cf)

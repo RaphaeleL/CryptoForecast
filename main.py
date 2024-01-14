@@ -46,12 +46,9 @@ def main(cf=CryptoForecast()):
     validate(cf)
     cf.visualize()
 
+    # TODO: Save the Predicted Data to a CSV file
+    # TODO: Save the Metrics to a TXT File
+
 
 if __name__ == "__main__":
-    start_time = time.time()
     main()
-    end_time = time.time()
-    diff = end_time - start_time
-    color = "green" if diff < 60 else "red"
-    colored_message = get_colored_text(f"{diff:.2f} seconds", color)
-    print(f"Total time taken: {colored_message}")
