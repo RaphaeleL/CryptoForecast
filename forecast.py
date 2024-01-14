@@ -207,21 +207,34 @@ class CryptoForecast:
         # Yellow is a fact, e.g. the ticker, the date
         # Purple is the rise or fall of the prediction
 
-        ticker = get_colored_text(self.ticker, "yellow")
-        duration = "used " + str(get_colored_text(f"{self.duration}s", "green" if self.duration < 60 else "red"))
-        stretch = f"with {get_colored_text(f'stretched data (x{self.stretch_factor})', 'purple')}" if self.strechted and self.stretch_factor < 24 else ""
         current_fmt, new_fmt = "%Y-%m-%d %H:%M:%S" if not self.args.minutely else "%Y-%m-%d %H:%M:%S%z", "%d. %b %Y - %H:%M"
-        min_value = self.forecast_data["Prediction"].min()
-        min_index = self.forecast_data[self.forecast_data["Prediction"] == min_value].index[0]
+        ticker = get_colored_text(self.ticker, "yellow")
+        duration = "needed " + str(get_colored_text(f"{self.duration}s", "green" if self.duration < 60 else "red"))
+        stretch = f"with {get_colored_text(f'stretched data (x{self.stretch_factor})', 'purple')}" if self.strechted and self.stretch_factor < 24 else ""
+
+        max_difference = 0
+        min_index, max_index = None, None
+        min_value, max_value = None, None
+
+        for i in range(len(self.forecast_data) - 1):
+            for j in range(i+1, len(self.forecast_data)):
+                difference = self.forecast_data['Prediction'].iloc[j] - self.forecast_data['Prediction'].iloc[i]
+                if difference > max_difference:
+                    max_difference = difference
+                    min_index = self.forecast_data.index[i]
+                    max_index = self.forecast_data.index[j]
+                    min_value = self.forecast_data["Prediction"].iloc[i]
+                    max_value = self.forecast_data["Prediction"].iloc[j]
         min_index = datetime.datetime.strptime(str(min_index), current_fmt).strftime(new_fmt)
-        min_str = f"{min_value:.2f} {ticker.split('-')[1]}"
-        min_message = "with a minimum of " + get_colored_text(f"{min_str}", "green") + " at " + get_colored_text(f"{min_index}", "yellow")
-        max_value = self.forecast_data["Prediction"].max()
-        max_index = self.forecast_data[self.forecast_data["Prediction"] == max_value].index[0]
         max_index = datetime.datetime.strptime(str(max_index), current_fmt).strftime(new_fmt)
+        min_str = f"{min_value:.2f} {ticker.split('-')[1]}"
         max_str = f"{max_value:.2f} {ticker.split('-')[1]}"
+        min_message = "with a minimum of " + get_colored_text(f"{min_str}", "green") + " at " + get_colored_text(f"{min_index}", "yellow")
         max_message = "and maximum of " + get_colored_text(f"{max_str}", "red") + " at " + get_colored_text(f"{max_index}", "yellow")
-        p_change = f"{get_colored_text('(' + format((max_value - min_value) / min_value * 100, '.2f') + '%)', 'purple')}"
+
+        fee = 0.05  # Coinbase Fee is 5%
+        change = (((max_value - min_value) / min_value) - fee) * 100
+        p_change = f"{get_colored_text('(' + format(change, '.2f') + '%)', 'purple')}"
         print("****",  ticker, p_change, duration, min_message, max_message, stretch)
 
     def backtest(self):
