@@ -7,6 +7,7 @@ import warnings
 
 from forecast import CryptoForecast
 from utils import get_full_ticker_list, get_colored_text
+from validation import validate
 
 warnings.filterwarnings("ignore")
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -35,12 +36,14 @@ def main(cf=CryptoForecast()):
             tcf.predict_future()
             tcf.stop_time()
             tcf.show_result()
+            validate(cf)
         return
 
     cf.load_history()
     cf.predict_future()
     cf.stop_time()
     cf.show_result()
+    validate(cf)
     cf.visualize()
 
 

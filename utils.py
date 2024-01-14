@@ -1,5 +1,7 @@
 from matplotlib import pyplot as plt, dates as mdates
 
+import datetime
+
 
 colors = {
     "red": "\033[91m",
@@ -63,3 +65,26 @@ def get_full_ticker_list():
     for ticker in glob.glob("weights/*.h5"):
         result.append(ticker.split("/")[1].split(".")[0])
     return result
+
+
+def extract_min_max(cf):
+    current_fmt, new_fmt = "%Y-%m-%d %H:%M:%S" if not cf.args.minutely else "%Y-%m-%d %H:%M:%S%z", "%d. %b %Y - %H:%M"
+
+    max_difference = 0
+    min_index, max_index = None, None
+    min_value, max_value = None, None
+
+    for i in range(len(cf.forecast_data) - 1):
+        for j in range(i+1, len(cf.forecast_data)):
+            difference = cf.forecast_data['Prediction'].iloc[j] - cf.forecast_data['Prediction'].iloc[i]
+            if difference > max_difference:
+                max_difference = difference
+                min_index = cf.forecast_data.index[i]
+                max_index = cf.forecast_data.index[j]
+                min_value = cf.forecast_data["Prediction"].iloc[i]
+                max_value = cf.forecast_data["Prediction"].iloc[j]
+    min_index = datetime.datetime.strptime(str(min_index), current_fmt).strftime(new_fmt)
+    max_index = datetime.datetime.strptime(str(max_index), current_fmt).strftime(new_fmt)
+    min_str = f"{min_value:.2f} {cf.ticker.split('-')[1]}"
+    max_str = f"{max_value:.2f} {cf.ticker.split('-')[1]}"
+    return min_str, min_index, min_value, max_str, max_index, max_value
