@@ -202,21 +202,26 @@ class CryptoForecast:
         self.duration = round((time.time() - self.start_time), 1)
 
     def show_result(self):
-        ticker = get_colored_text(yf.Ticker(self.ticker).info["name"], "yellow")
-        duration = "needed " + str(get_colored_text(f"{self.duration}s", "green" if self.duration < 60 else "red"))
-        min_str, min_index, min_value, max_str, max_index, max_value = extract_min_max(self)
+        ticker = get_colored_text(yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split('-')[1] + ")", "yellow")
+        min_index, min_value, max_index, max_value, global_min_index, global_min_value, global_max_index, global_max_value = extract_min_max(self)
         change = (((max_value - min_value) / min_value) - 0.05) * 100
-        p_change = f"{get_colored_text('(' + format(change, '.2f') + '%)', 'purple')}"
 
-        min_message = "with a minimum of " + get_colored_text(f"{min_str}", "green") + " at " + get_colored_text(f"{min_index}", "yellow")
-        max_message = "and maximum of " + get_colored_text(f"{max_str}", "red") + " at " + get_colored_text(f"{max_index}", "yellow")
+        min_str = f"{min_value:.2f} {self.ticker.split('-')[1]}"
+        max_str = f"{max_value:.2f} {self.ticker.split('-')[1]}"
 
-        print(ticker)  #, p_change, duration, min_message, max_message)
-        min_m, max_m, rise_m, dur_m = "├── Minium", "├── Maximum", "├── Trend", "├── Duration"
+        global_min_str = f"{global_min_value:.2f} {self.ticker.split('-')[1]}"
+        global_max_str = f"{global_max_value:.2f} {self.ticker.split('-')[1]}"
+
+        print(ticker)
+        min_m, max_m = "├── Minimum (Logic)", "├── Maximum (Logic)"
+        rise_m, dur_m = "├── Trend", "├── Duration"
+        gmin_m, gmax_m = "├── Minimum (Global)", "├── Maximum (Global)"
         print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{min_index}", "yellow"), "with", get_colored_text(f"{min_str}", "green"))
+        print(f"{gmin_m} {space(gmin_m, 4)}", get_colored_text(f"{global_min_index}", "yellow"), "with", get_colored_text(f"{global_min_str}", "green"))
         print(f"{max_m} {space(max_m, 4)}", get_colored_text(f"{max_index}", "yellow"), "with", get_colored_text(f"{max_str}", "red"))
-        print(f"{rise_m} {space(rise_m, 4)}", get_colored_text(f"{format(change, '.2f') + '%'}", "purple"))
-        print(f"{dur_m} {space(dur_m, 4)}", get_colored_text(f"{self.duration}s", "green" if self.duration < 60 else "red"))
+        print(f"{gmax_m} {space(gmax_m, 4)}", get_colored_text(f"{global_max_index}", "yellow"), "with", get_colored_text(f"{global_max_str}", "red"))
+        print(f"{rise_m} {space(rise_m, 4)}", get_colored_text(f"{format(change, '.2f') + '%'}", "green" if change > 0 else "red"))
+        print(f"{dur_m} {space(dur_m, 4)}", f"{self.duration}s")
 
     def backtest(self):
         self.load_history()
