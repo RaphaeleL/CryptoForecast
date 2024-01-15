@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import time
 import tensorflow as tf
 import os
 import warnings
 
 from forecast import CryptoForecast
-from utils import get_full_ticker_list, get_colored_text
+from utils import get_full_ticker_list
 from validation import validate
 
 warnings.filterwarnings("ignore")
