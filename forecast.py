@@ -15,7 +15,13 @@ from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils import cprint, plot, plot_backtest, get_colored_text, extract_min_max, create_cloud_path
+from utils import (
+    cprint,
+    plot,
+    plot_backtest,
+    extract_min_max,
+    create_cloud_path,
+)
 from validation import psa, validate
 
 
@@ -66,7 +72,7 @@ class CryptoForecast:
         data = self.scaler.fit_transform(self.data)
         dataX, dataY = [], []
         for i in range(len(data) - 1):
-            a = data[i:i+1, 0]
+            a = data[i : i + 1, 0]
             dataX.append(a)
             dataY.append(data[i + 1, 0])
         return np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
@@ -137,10 +143,10 @@ class CryptoForecast:
 
     def get_end_date(self):
         today = datetime.date(
-                datetime.datetime.now().year,
-                datetime.datetime.now().month,
-                datetime.datetime.now().day - 7
-            )
+            datetime.datetime.now().year,
+            datetime.datetime.now().month,
+            datetime.datetime.now().day - 7,
+        )
         return today
 
     def load_history(self, agent=-1, should_save=True):
@@ -150,7 +156,9 @@ class CryptoForecast:
         kf = KFold(n_splits=self.args.folds, shuffle=False)
 
         def train_fold(train_index, test_index):
-            X_train, X_test, y_train, y_test = self.split(self.X, self.y, train_index, test_index)
+            X_train, X_test, y_train, y_test = self.split(
+                self.X, self.y, train_index, test_index
+            )
             self.train(X_train, y_train)
             pred = self.scaler.inverse_transform(self.model.predict(X_test, verbose=0))
 
@@ -161,7 +169,10 @@ class CryptoForecast:
             return train_pred_fold, actuals_fold
 
         with ThreadPoolExecutor(max_workers=self.args.folds) as executor:
-            futures = [executor.submit(train_fold, train_index, test_index) for train_index, test_index in kf.split(self.X)]
+            futures = [
+                executor.submit(train_fold, train_index, test_index)
+                for train_index, test_index in kf.split(self.X)
+            ]
             for future in as_completed(futures):
                 train_pred_fold, actuals_fold = future.result()
                 all_train_pred = pd.concat([all_train_pred, train_pred_fold])
@@ -206,10 +217,21 @@ class CryptoForecast:
     def generate_metric(self, plattform="Coinbase"):
         self.save_prediction()
         fees = {"Coinbase": 0.05}
-        ticker = yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split('-')[1] + ")"
-        min_index, min_value, max_index, max_value, global_min_index, global_min_value, global_max_index, global_max_value = extract_min_max(self)
+        ticker = yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split("-")[1] + ")"
+        (
+            min_index,
+            min_value,
+            max_index,
+            max_value,
+            global_min_index,
+            global_min_value,
+            global_max_index,
+            global_max_value,
+        ) = extract_min_max(self)
         change_l = (((max_value - min_value) / min_value) - fees[plattform]) * 100
-        change_g = (((global_max_value - global_min_value) / global_min_value) - 0.05) * 100
+        change_g = (
+            ((global_max_value - global_min_value) / global_min_value) - 0.05
+        ) * 100
 
         min_str = f"{min_value:.2f} {self.ticker.split('-')[1]}"
         max_str = f"{max_value:.2f} {self.ticker.split('-')[1]}"
@@ -217,15 +239,24 @@ class CryptoForecast:
         global_min_str = f"{global_min_value:.2f} {self.ticker.split('-')[1]}"
         global_max_str = f"{global_max_value:.2f} {self.ticker.split('-')[1]}"
 
-        global_hint, local_hint = "└── Global Extrem Values", "└── Logical Trend & Buy Recommendation"
+        global_hint, local_hint = (
+            "└── Global Extrem Values",
+            "└── Logical Trend & Buy Recommendation",
+        )
         res = f"{ticker}\n{local_hint}\n"
 
         res += psa("Minimum", 4, min_index + " with " + min_str, False) + "\n"
         res += psa("Maximum", 4, max_index + " with " + max_str, False) + "\n"
         res += psa("Trend", 4, f"{round(change_l, 1)}%", True) + "\n"
         res += global_hint + "\n"
-        res += psa("Minimum", 4, global_min_index + " with " + global_min_str, False) + "\n"
-        res += psa("Maximum", 4, global_max_index + " with " + global_max_str, False) + "\n"
+        res += (
+            psa("Minimum", 4, global_min_index + " with " + global_min_str, False)
+            + "\n"
+        )
+        res += (
+            psa("Maximum", 4, global_max_index + " with " + global_max_str, False)
+            + "\n"
+        )
         res += psa("Trend", 4, f"{round(change_g, 1)}%", True) + "\n"
         self.metric = res
 
@@ -237,30 +268,22 @@ class CryptoForecast:
         self.predict_future()
 
         backtest_period = yf.download(
-                self.ticker,
-                start=self.end_date,
-                end=datetime.datetime.now(),
-                interval="1d",
-                progress=False
+            self.ticker,
+            start=self.end_date,
+            end=datetime.datetime.now(),
+            interval="1d",
+            progress=False,
         )
         actual_data = backtest_period[["Close"]]
         return actual_data
 
     def save_prediction(self):
-        # TODO: This is gonna be a total mess on my Cloud! Need to find a better way 
+        # TODO: This is gonna be a total mess on my Cloud! Need to find a better way
         #       to handle this, maybe overwrite the path every time.
-        filepath = create_cloud_path(
-            ticker=self.ticker,
-            typeof="forecasts",
-            filetype="csv"
-        )
+        filepath = create_cloud_path(ticker=self.ticker, typeof="forecasts", filetype="csv")
         self.forecast_data.to_csv(filepath, index=True)
 
     def save_metrics(self):
         print(self.metric)
-        filepath = create_cloud_path(
-            ticker=self.ticker,
-            typeof="metrics",
-            filetype="txt"
-        )
+        filepath = create_cloud_path(ticker=self.ticker, typeof="metrics", filetype="txt")
         open(filepath, "w+", encoding="utf-8").write(self.metric)
