@@ -26,7 +26,7 @@ def main(cf=CryptoForecast()):
         return
 
     if cf.args.auto:
-        for ticker in get_full_ticker_list():
+        for ticker in get_full_ticker_list(): # TODO: Add threading
             tcf = CryptoForecast(ticker)
             tcf.load_history()
             tcf.predict_future()

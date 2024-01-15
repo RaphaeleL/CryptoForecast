@@ -37,14 +37,14 @@ def monte_carlo_simulation(
     cf.metric += ps(keys[0], 4, True)
     last_price = cf.data["Close"][-1]
     simulation_df = pd.DataFrame()
-    # TODO: Thread this for loop
+    # TODO: Add threading
     for x in range(num_simulations):
         count = 0
         daily_volatility = cf.data["Close"].pct_change().std()
         price_series = []
         price = last_price * (1 + np.random.normal(0, daily_volatility))
         price_series.append(price)
-        # TODO: Thread this for loop
+        # TODO: Add threading
         for _ in range(num_days):
             if count == 251:
                 break
