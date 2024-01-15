@@ -55,7 +55,7 @@ def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_int
 
     res = (lower_bound <= actual_price).any() and (actual_price <= upper_bound).any()
     print(convert_result_to_text(res))
-    pss("Simulation", 0, f"#{num_simulations}", False)
+    pss("Simulation Count", 0, f"#{num_simulations}", False)
     pss("Days", 0, num_days, False)
     pss("Confidence Interval", 0, f"{confidence_interval * 100}%", True)
     return res
