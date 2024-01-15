@@ -249,14 +249,8 @@ class CryptoForecast:
         res += psa("Maximum", 4, max_index + " with " + max_str, False) + "\n"
         res += psa("Trend", 4, f"{round(change_l, 1)}%", True) + "\n"
         res += global_hint + "\n"
-        res += (
-            psa("Minimum", 4, global_min_index + " with " + global_min_str, False)
-            + "\n"
-        )
-        res += (
-            psa("Maximum", 4, global_max_index + " with " + global_max_str, False)
-            + "\n"
-        )
+        res += psa("Minimum", 4, global_min_index + " with " + global_min_str, False) + "\n"
+        res += psa("Maximum", 4, global_max_index + " with " + global_max_str, False) + "\n"
         res += psa("Trend", 4, f"{round(change_g, 1)}%", True) + "\n"
         self.metric = res
 
