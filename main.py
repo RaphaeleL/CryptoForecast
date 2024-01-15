@@ -33,17 +33,13 @@ def main(cf=CryptoForecast()):
             tcf.load_history()
             tcf.predict_future()
             tcf.stop_time()
-            tcf.save_prediction()
             tcf.generate_metric()
-            tcf.save_metrics()
         return
 
     cf.load_history()
     cf.predict_future()
     cf.stop_time()
-    cf.save_prediction()
     cf.generate_metric()
-    cf.save_metrics()
     cf.visualize()
 
 if __name__ == "__main__":

@@ -204,6 +204,7 @@ class CryptoForecast:
         self.duration = round((time.time() - self.start_time), 1)
 
     def generate_metric(self, plattform="Coinbase"):
+        self.save_prediction()
         fees = {"Coinbase": 0.05}
         ticker = yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split('-')[1] + ")"
         min_index, min_value, max_index, max_value, global_min_index, global_min_value, global_max_index, global_max_value = extract_min_max(self)
@@ -229,6 +230,7 @@ class CryptoForecast:
         self.metric = res
 
         validate(self)
+        self.save_metrics()
 
     def backtest(self):
         self.load_history()
