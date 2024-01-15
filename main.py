@@ -17,13 +17,11 @@ def main(cf=CryptoForecast()):
     if cf.should_retrain:
         cf.load_history()
         cf.stop_time()
-        cf.show_result()
         return
 
     if cf.args.debug:
         actual_data = cf.backtest()
         cf.stop_time()
-        cf.show_result()
         cf.visualize_backtest(actual_data)
         return
 
