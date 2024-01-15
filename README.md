@@ -30,6 +30,7 @@ If you want to Retrain the Weights of the Coin, or want to create a new Weight F
 - `--retrain`: (Re-) Train the Ticker. 
 - `--debug`: Predict the History with Weights and see how the Model is working.
 - `--auto`: Use all Available Tickers (for those with a Weight File) and Predict the Future for them.
+- `--path`: Location of the `forecast/` and `metrics/` folder, aka. the Results of the Prediction (default: '~/bwSyncShare/PadWise-Trading')
 
 ## Model Architecture
 

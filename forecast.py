@@ -21,6 +21,7 @@ from utils import (
     plot_backtest,
     extract_min_max,
     create_cloud_path,
+    get_dafault_bw_path
 )
 from validation import psa, validate
 
@@ -138,6 +139,7 @@ class CryptoForecast:
         argparser.add_argument("--minutely", action="store_true")
         argparser.add_argument("--debug", action="store_true")
         argparser.add_argument("--auto", action="store_true")
+        argparser.add_argument("--path", type=str, default=get_dafault_bw_path())  # TODO
         args = argparser.parse_args()
         return args
 
@@ -274,10 +276,10 @@ class CryptoForecast:
     def save_prediction(self):
         # TODO: This is gonna be a total mess on my Cloud! Need to find a better way
         #       to handle this, maybe overwrite the path every time.
-        filepath = create_cloud_path(ticker=self.ticker, typeof="forecasts", filetype="csv")
+        filepath = create_cloud_path(self.args.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
         self.forecast_data.to_csv(filepath, index=True)
 
     def save_metrics(self):
         print(self.metric)
-        filepath = create_cloud_path(ticker=self.ticker, typeof="metrics", filetype="txt")
+        filepath = create_cloud_path(self.args.path, ticker=self.ticker, typeof="metrics", filetype="txt")
         open(filepath, "w+", encoding="utf-8").write(self.metric)
