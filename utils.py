@@ -122,9 +122,7 @@ def create_cloud_path(ticker, typeof, filetype):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     if sys.platform == "win32":
-        bwss = f"C:\\Users\\lira0003\\bwSyncShare\\PadWise-Trading\\{typeof}"
-        path = f"{ticker}/"
-        path = os.path.join(bwss, path)
+        path = os.path.join(f"C:\\Users\\lira0003\\bwSyncShare\\PadWise-Trading\\{typeof}", f"{ticker}")
         filename = f"{timestamp}.{filetype}"
     elif sys.platform == "linux":
         # TODO: Add Linux BwSyncShare Path
