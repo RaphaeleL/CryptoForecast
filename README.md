@@ -12,10 +12,10 @@ This Python script is designed for predicting cryptocurrency prices using a deep
 
 ## Usage
 
-Run the script from the command line. You can specify the cryptocurrency, batch size, number of epochs, and the prediction length (in days), but you should be fine with using the defaults and just run `python3 forecast.py`. Nevertheless, an example:
+Run the script from the command line. You can specify the cryptocurrency, batch size, number of epochs, and much more, but you should be fine with using the defaults. Nevertheless, an example:
 
 ```bash 
-python forecast.py --coin ETH-USD
+python main.py --coin ETH-USD
 ```
 
 If you want to Retrain the Weights of the Coin, or want to create a new Weight File for a new Ticker, then just append `--retrain`. 
