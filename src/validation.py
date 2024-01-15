@@ -75,17 +75,28 @@ def monte_carlo_simulation(
 
 def trend_analysis(cf, i):
     result = "n/a"
+    from src.utils import extract_min_max
+    _, min_value, _, max_value, _, _, _, _ = extract_min_max(cf)
+    change_l = (((max_value - min_value) / min_value)) * 100
+
+    pred_dir = "up" if change_l > 0 else "down"
     cf.metric += ps(keys[i], 4, True)
     # TODO: Swing Trading also Stündliche Analyse
-    cf.metric += convert_result_to_text(None) + "\n"
+    cf.metric += convert_result_to_text(result == pred_dir) + "\n"
     cf.metric += pss("Type", 0, "Swing Trading", False) + "\n"
-    cf.metric += pss("Trend Direction", 0, result, True) + "\n"
+    cf.metric += pss("Trend Direction", 0, result, False) + "\n"
+    cf.metric += pss("Prediction Direction", 0, pred_dir, True) + "\n"
 
 
 def ask_llm(cf, i):
-    cf.metric += ps(keys[i], 4, True if i == len(keys) -1 else False)
-    # TODO: OpenAI ChatGPT API
-    cf.metric += convert_result_to_text(None) + "\n"
+    trends = {"ChatGPT": "n/a", "Google Bard": "n/a"}
+    cf.metric += ps(keys[i], 4, True)
+    # TODO: Implement an OpenAI Request
+    # TODO: Implement a Google Bard Request
+    result = all(value is True for value in trends.values())
+    cf.metric += convert_result_to_text(result) + "\n"
+    for index, llms in enumerate(trends.keys()):
+        cf.metric += pss(llms, 0, trends[llms], True if index == len(trends) -1 else False) + "\n"
 
 
 def tweet_analysis(cf, i):
