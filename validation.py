@@ -8,7 +8,9 @@ from utils import get_colored_text
 
 keys = ["Monte Carlo Simulation", "Trend Analysis", "Asking a LLM"]
 space = lambda x, y: "." * (len(max(keys, key=len)) - len(x) + 7 + y)
-
+pss = lambda x, y, z, a: print(f"        {'└──' if a else '├──'} {x} {space(x, y)} {z}")    # Level 2
+psa = lambda x, y, z, a: print(f"    {'└──' if a else '├──'} {x} {space(x, y)} {z}")        # Level 1
+ps = lambda x, y, z: print(f"    {'└──' if z else '├──'} {x} {space(x, y)} ", end="")       # Level 1 without End
 
 def convert_result_to_text(text):
     if text == None:
@@ -20,7 +22,7 @@ def convert_result_to_text(text):
 
 
 def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_interval=0.95, plot=False):
-    print(f"    ├── {keys[0]} {space(keys[0], -4)} ", end="")
+    ps(keys[0], -4, True)
     last_price = cf.data['Close'][-1]
     simulation_df = pd.DataFrame()
     # TODO: Thread this for loop
@@ -53,17 +55,23 @@ def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_int
 
     res = (lower_bound <= actual_price).any() and (actual_price <= upper_bound).any()
     print(convert_result_to_text(res))
+    pss("Simulation", -8, f"#{num_simulations}", False)
+    pss("Days", -8, num_days, False)
+    pss("Confidence Interval", -8, f"#{confidence_interval*100}%", True)
     return res 
 
 
 def trend_analysis(cf):
-    print(f"    ├── {keys[1]} {space(keys[1], -4)} ", end="")
+    result, color = "n/a", "purple"
+    ps(keys[1], -4, True)
     # TODO: Swing Trading also Stündliche Analyse
     print(convert_result_to_text(None))
+    pss("Type", -8, "Swing Trading", False)
+    pss("Trend Direction", -8, get_colored_text(result, color), True)
 
 
 def ask_llm(cf):
-    print(f"    └── {keys[2]} {space(keys[2], -4)} ", end="")
+    ps(keys[2], -4, True)
     # TODO: OpenAI ChatGPT API
     print(convert_result_to_text(None))
 
@@ -71,6 +79,6 @@ def ask_llm(cf):
 def validate(cf):
     print("└── Validation")
 
-    monte_carlo_simulation(cf, 5000, 365, 0.95, False)
+    monte_carlo_simulation(cf, 500, 365, 0.95, False)
     trend_analysis(cf)
     ask_llm(cf)

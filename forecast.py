@@ -15,7 +15,7 @@ from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from utils import cprint, plot, plot_backtest, get_colored_text, extract_min_max
-from validation import space
+from validation import psa
 
 
 class CryptoForecast:
@@ -214,17 +214,15 @@ class CryptoForecast:
         global_min_str = f"{global_min_value:.2f} {self.ticker.split('-')[1]}"
         global_max_str = f"{global_max_value:.2f} {self.ticker.split('-')[1]}"
 
-        min_m, max_m = "    ├── Minimum", "    ├── Maximum"
-        trend_m = f"    └── Trend {get_colored_text(f'({plattform} Fee {round(fees[plattform] * 100)}%)', 'cyan')}"
         print(ticker)
-        print(f"└── Logic {get_colored_text('(Buy recommendation based on this graph)', 'cyan')}")
-        print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{format(change_l, '.2f') + '%'}", "green" if change_l > 0 else "red"))
-        print(f"{max_m} {space(max_m, 4)}", get_colored_text(f"{min_index}", "yellow"), "with", get_colored_text(f"{min_str}", "green"))
-        print(f"{trend_m} {space(trend_m, 4)}", get_colored_text(f"{max_index}", "yellow"), "with", get_colored_text(f"{max_str}", "red"))
-        print(f"└── Global {get_colored_text('(where is the high and low point)', 'cyan')}")
-        print(f"{min_m} {space(min_m, 4)}", get_colored_text(f"{format(change_g, '.2f') + '%'}", "green" if change_g > 0 else "red"))
-        print(f"{max_m} {space(max_m, 4)}", get_colored_text(f"{global_min_index}", "yellow"), "with", get_colored_text(f"{global_min_str}", "green"))
-        print(f"{trend_m} {space(trend_m, 4)}", get_colored_text(f"{global_max_index}", "yellow"), "with", get_colored_text(f"{global_max_str}", "red"))
+        print("└── Logical Trend & Buy Recommendation")
+        psa("Minimum", 4, get_colored_text(f"{min_index}", "yellow") + " with " + get_colored_text(f"{min_str}", "green"), False)
+        psa("Maximum", 4, get_colored_text(f"{max_index}", "yellow") + " with " + get_colored_text(f"{max_str}", "green"), False)
+        psa("Trend", 4, get_colored_text(f"{round(change_l, 1)}%", "green" if change_l > 0 else "red"), True)
+        print("└── Global Extrem Values")
+        psa("Minimum", 4, get_colored_text(f"{global_min_index}", "yellow") + " with " + get_colored_text(f"{global_min_str}", "green"), False)
+        psa("Maximum", 4, get_colored_text(f"{global_max_index}", "yellow") + " with " + get_colored_text(f"{global_max_str}", "green"), False)
+        psa("Trend", 4, get_colored_text(f"{round(change_g, 1)}%", "green" if change_l > 0 else "red"), True)
 
     def backtest(self):
         self.load_history()
