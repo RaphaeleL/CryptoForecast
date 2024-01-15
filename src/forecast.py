@@ -48,6 +48,7 @@ class CryptoForecast:
         self.should_retrain = should_retrain
 
     def get_data(self, stretch=False, period="max", interval="1d"):
+        # NOTE: YF is not Thread Safe
         stretch_factor = self.stretch_factor
         if not self.args.minutely:
             raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
