@@ -15,7 +15,7 @@ from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils import (
+from src.utils import (
     cprint,
     plot,
     plot_backtest,
@@ -23,7 +23,7 @@ from utils import (
     create_cloud_path,
     get_dafault_bw_path
 )
-from validation import psa, validate
+from src.validation import psa, validate
 
 
 class CryptoForecast:

@@ -1,9 +1,8 @@
 import os
 import glob
+import datetime
 import pandas as pd
 from matplotlib import pyplot as plt, dates as mdates
-
-import datetime
 
 
 colors = {

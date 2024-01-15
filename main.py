@@ -4,8 +4,8 @@ import tensorflow as tf
 import os
 import warnings
 
-from forecast import CryptoForecast
-from utils import get_full_ticker_list
+from src.forecast import CryptoForecast
+from src.utils import get_full_ticker_list
 
 warnings.filterwarnings("ignore")
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
