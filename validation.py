@@ -3,26 +3,24 @@ import pandas as pd
 import yfinance as yf
 from matplotlib import pyplot as plt
 
-from utils import get_colored_text
-
 keys = ["Monte Carlo Simulation", "Trend Analysis", "Asking a LLM"]
-space = lambda x, y: "." * (len(max(keys, key=len)) - len(x) + 7 + y)
-pss = lambda x, y, z, a: print(f"        {'└──' if a else '├──'} {x} {space(x, y)} {z}")  # Level 2
-psa = lambda x, y, z, a: print(f"    {'└──' if a else '├──'} {x} {space(x, y)} {z}")  # Level 1
-ps = lambda x, y, z: print(f"    {'└──' if z else '├──'} {x} {space(x, y)} ", end="")  # Level 1 without End
 
+def space(x, y): return "." * (len(max(keys, key=len)) - len(x) + 7 + y)
+def pss(x, y, z, a): return f"        {'└──' if a else '├──'} {x} {space(x, y)} {z}"
+def psa(x, y, z, a): return f"    {'└──' if a else '├──'} {x} {space(x, y)} {z}"
+def ps(x, y, z): return f"    {'└──' if z else '├──'} {x} {space(x, y)} "
 
 def convert_result_to_text(text):
     if text == None:
-        return get_colored_text("n/a", "purple")
+        return "n/a"
     elif text:
-        return get_colored_text("passed", "green")
+        return "passed"
     elif not text:
-        return get_colored_text("failed", "red")
+        return "failed"
 
 
 def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_interval=0.95, plot=False):
-    ps(keys[0], 4, True)
+    cf.metric += ps(keys[0], 4, True)
     last_price = cf.data['Close'][-1]
     simulation_df = pd.DataFrame()
     # TODO: Thread this for loop
@@ -54,30 +52,30 @@ def monte_carlo_simulation(cf, num_simulations=1000, num_days=30, confidence_int
         plt.show()
 
     res = (lower_bound <= actual_price).any() and (actual_price <= upper_bound).any()
-    print(convert_result_to_text(res))
-    pss("Simulation Count", 0, f"#{num_simulations}", False)
-    pss("Days", 0, num_days, False)
-    pss("Confidence Interval", 0, f"{confidence_interval * 100}%", True)
+    cf.metric += convert_result_to_text(res) + "\n"
+    cf.metric += pss("Simulation Count", 0, f"#{num_simulations}", False) + "\n"
+    cf.metric += pss("Days", 0, num_days, False) + "\n"
+    cf.metric += pss("Confidence Interval", 0, f"{confidence_interval * 100}%", True) + "\n"
     return res
 
 
 def trend_analysis(cf):
-    result, color = "n/a", "purple"
-    ps(keys[1], 4, True)
+    result = "n/a"
+    cf.metric += ps(keys[1], 4, True)
     # TODO: Swing Trading also Stündliche Analyse
-    print(convert_result_to_text(None))
-    pss("Type", 0, "Swing Trading", False)
-    pss("Trend Direction", 0, get_colored_text(result, color), True)
+    cf.metric += convert_result_to_text(None) + "\n"
+    cf.metric += pss("Type", 0, "Swing Trading", False) + "\n"
+    cf.metric += pss("Trend Direction", 0, result, True) + "\n"
 
 
 def ask_llm(cf):
-    ps(keys[2], 4, True)
+    cf.metric += ps(keys[2], 4, True)
     # TODO: OpenAI ChatGPT API
-    print(convert_result_to_text(None))
+    cf.metric += convert_result_to_text(None) + "\n"
 
 
 def validate(cf):
-    print("└── Validation")
+    cf.metric += "└── Validation\n"
 
     monte_carlo_simulation(cf, 500, 365, 0.95, False)
     trend_analysis(cf)

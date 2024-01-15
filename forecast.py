@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import datetime
 import argparse
@@ -14,13 +15,14 @@ from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils import cprint, plot, plot_backtest, get_colored_text, extract_min_max
-from validation import psa
+from utils import cprint, plot, plot_backtest, get_colored_text, extract_min_max, create_cloud_path
+from validation import psa, validate
 
 
 class CryptoForecast:
     def __init__(self, ticker=None, minutely=False):
         self.start_time = time.time()
+        self.metric = ""
         self.duration = time.time()
         self.args = self.parse_args()
         self.end_date = self.get_end_date()
@@ -201,9 +203,9 @@ class CryptoForecast:
     def stop_time(self):
         self.duration = round((time.time() - self.start_time), 1)
 
-    def show_result(self, plattform="Coinbase"):
+    def generate_metric(self, plattform="Coinbase"):
         fees = {"Coinbase": 0.05}
-        ticker = get_colored_text(yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split('-')[1] + ")", "yellow")
+        ticker = yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split('-')[1] + ")"
         min_index, min_value, max_index, max_value, global_min_index, global_min_value, global_max_index, global_max_value = extract_min_max(self)
         change_l = (((max_value - min_value) / min_value) - fees[plattform]) * 100
         change_g = (((global_max_value - global_min_value) / global_min_value) - 0.05) * 100
@@ -214,15 +216,19 @@ class CryptoForecast:
         global_min_str = f"{global_min_value:.2f} {self.ticker.split('-')[1]}"
         global_max_str = f"{global_max_value:.2f} {self.ticker.split('-')[1]}"
 
-        print(ticker)
-        print("└── Logical Trend & Buy Recommendation")
-        psa("Minimum", 4, get_colored_text(f"{min_index}", "yellow") + " with " + get_colored_text(f"{min_str}", "green"), False)
-        psa("Maximum", 4, get_colored_text(f"{max_index}", "yellow") + " with " + get_colored_text(f"{max_str}", "green"), False)
-        psa("Trend", 4, get_colored_text(f"{round(change_l, 1)}%", "green" if change_l > 0 else "red"), True)
-        print("└── Global Extrem Values")
-        psa("Minimum", 4, get_colored_text(f"{global_min_index}", "yellow") + " with " + get_colored_text(f"{global_min_str}", "green"), False)
-        psa("Maximum", 4, get_colored_text(f"{global_max_index}", "yellow") + " with " + get_colored_text(f"{global_max_str}", "green"), False)
-        psa("Trend", 4, get_colored_text(f"{round(change_g, 1)}%", "green" if change_l > 0 else "red"), True)
+        global_hint, local_hint = "└── Global Extrem Values", "└── Logical Trend & Buy Recommendation"
+        res = f"{ticker}\n{local_hint}\n"
+
+        res += psa("Minimum", 4, min_index + " with " + min_str, False) + "\n"
+        res += psa("Maximum", 4, max_index + " with " + max_str, False) + "\n"
+        res += psa("Trend", 4, f"{round(change_l, 1)}%", True) + "\n"
+        res += global_hint + "\n"
+        res += psa("Minimum", 4, global_min_index + " with " + global_min_str, False) + "\n"
+        res += psa("Maximum", 4, global_max_index + " with " + global_max_str, False) + "\n"
+        res += psa("Trend", 4, f"{round(change_g, 1)}%", True) + "\n"
+        self.metric = res
+
+        validate(self)
 
     def backtest(self):
         self.load_history()
@@ -237,3 +243,22 @@ class CryptoForecast:
         )
         actual_data = backtest_period[["Close"]]
         return actual_data
+
+    def save_prediction(self):
+        # TODO: This is gonna be a total mess on my Cloud! Need to find a better way 
+        #       to handle this, maybe overwrite the path every time.
+        filepath = create_cloud_path(
+            ticker=self.ticker,
+            typeof="forecasts",
+            filetype="csv"
+        )
+        self.forecast_data.to_csv(filepath, index=True)
+
+    def save_metrics(self):
+        print(self.metric)
+        filepath = create_cloud_path(
+            ticker=self.ticker,
+            typeof="metrics",
+            filetype="txt"
+        )
+        open(filepath, "w+", encoding="utf-8").write(self.metric)

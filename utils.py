@@ -1,3 +1,7 @@
+import os
+import sys
+import glob
+import pandas as pd
 from matplotlib import pyplot as plt, dates as mdates
 
 import datetime
@@ -59,11 +63,20 @@ def get_colored_text(to_print, color):
     return f"{colors.get(color, '')}{to_print}{colors['end']}"
 
 
+def get_top_50_tickers():
+    return list(pd.read_csv("top_50_names.csv")["Name"])
+
+
+def get_weight_file_tickers():
+    return glob.glob("weights/*.h5")
+
+
 def get_full_ticker_list():
-    import glob
     result = []
-    for ticker in glob.glob("weights/*.h5"):
-        result.append(ticker.split("/")[1].split(".")[0])
+    for weight_ticker in get_weight_file_tickers():
+        for ticker in get_top_50_tickers():
+            if ticker in weight_ticker:
+                result.append(ticker + "-EUR")
     return result
 
 
@@ -100,3 +113,31 @@ def extract_min_max(cf):
     global_max_index = datetime.datetime.strptime(str(global_max_index), current_fmt).strftime(new_fmt)
 
     return min_index, min_value, max_index, max_value, global_min_index, global_min_value, global_max_index, global_max_value
+
+
+def save_prediction(predictions, path):
+    predictions.to_csv(path, index=True)
+
+def create_cloud_path(ticker, typeof, filetype):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if sys.platform == "win32":
+        bwss = f"C:\\Users\\lira0003\\bwSyncShare\\PadWise-Trading\\{typeof}"
+        path = f"{ticker}/"
+        path = os.path.join(bwss, path)
+        filename = f"{timestamp}.{filetype}"
+    elif sys.platform == "linux":
+        # TODO: Add Linux BwSyncShare Path
+        path = f"predictions/{ticker}/"
+        filename = f"{timestamp}.{filetype}"
+    elif sys.platform == "darwin":
+        # TODO: Add Mac BwSyncShare Path
+        path = f"predictions/{ticker}/"
+        filename = f"{timestamp}.{filetype}"
+    else:
+        cprint("Unknown operating system", "red")
+    
+    os.makedirs(path, exist_ok=True)
+    filepath = os.path.join(path, filename)
+
+    return filepath
