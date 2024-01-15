@@ -18,7 +18,11 @@ Run the script from the command line. You can specify the cryptocurrency, batch 
 python main.py --coin ETH-USD
 ```
 
-If you want to Retrain the Weights of the Coin, or want to create a new Weight File for a new Ticker, then just append `--retrain`. 
+If you want to Retrain the Weights or want to create a new Weight File, then you should use:
+
+```bash 
+python main.py --coin ETH-USD --retrain
+```
 
 ### Parameters
 
