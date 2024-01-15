@@ -3,7 +3,7 @@ import pandas as pd
 import yfinance as yf
 from matplotlib import pyplot as plt
 
-keys = ["Monte Carlo Simulation", "Trend Analysis", "Asking a LLM"]
+keys = ["Monte Carlo Simulation", "Trend Analysis", "Asking a LLM", "Tweet Analysis", "Google Trend Analysis"]
 
 
 def space(x, y):
@@ -32,9 +32,9 @@ def convert_result_to_text(text):
 
 
 def monte_carlo_simulation(
-    cf, num_simulations=1000, num_days=30, confidence_interval=0.95, plot=False
+    cf, i, num_simulations=1000, num_days=30, confidence_interval=0.95, plot=False
 ):
-    cf.metric += ps(keys[0], 4, True)
+    cf.metric += ps(keys[i], 4, True)
     last_price = cf.data["Close"][-1]
     simulation_df = pd.DataFrame()
     # TODO: Add threading
@@ -73,24 +73,38 @@ def monte_carlo_simulation(
     return res
 
 
-def trend_analysis(cf):
+def trend_analysis(cf, i):
     result = "n/a"
-    cf.metric += ps(keys[1], 4, True)
+    cf.metric += ps(keys[i], 4, True)
     # TODO: Swing Trading also Stündliche Analyse
     cf.metric += convert_result_to_text(None) + "\n"
     cf.metric += pss("Type", 0, "Swing Trading", False) + "\n"
     cf.metric += pss("Trend Direction", 0, result, True) + "\n"
 
 
-def ask_llm(cf):
-    cf.metric += ps(keys[2], 4, True)
+def ask_llm(cf, i):
+    cf.metric += ps(keys[i], 4, True if i == len(keys) -1 else False)
     # TODO: OpenAI ChatGPT API
     cf.metric += convert_result_to_text(None) + "\n"
 
 
+def tweet_analysis(cf, i):
+    cf.metric += ps(keys[3], 4, True if i == len(keys) -1 else False)
+    # TODO: Sentiment Analysis from Tweets
+    cf.metric += convert_result_to_text(None) + "\n"
+    
+
+def google_trend_analysis(cf, i):
+    cf.metric += ps(keys[i], 4, True if i == len(keys) -1 else False)
+    # TODO: Google Trend Analysis
+    #       https://github.com/bhushan23/Cryptocurrency-Analysis/blob/master/2_Google_Trends.ipynb
+    cf.metric += convert_result_to_text(None) + "\n"
+
 def validate(cf):
     cf.metric += "└── Validation\n"
 
-    monte_carlo_simulation(cf, 500, 365, 0.95, False)
-    trend_analysis(cf)
-    ask_llm(cf)
+    monte_carlo_simulation(cf, 0, 500, 365, 0.95, False)
+    trend_analysis(cf, 1)
+    ask_llm(cf, 2)
+    tweet_analysis(cf, 3)
+    google_trend_analysis(cf, 4)
