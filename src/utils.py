@@ -16,6 +16,17 @@ colors = {
 }
 
 
+def get_interval(future_days):
+    if future_days <= 7:
+        return 1
+    elif future_days <= 30:
+        return 7
+    elif future_days <= 90:
+        return 30
+    elif future_days <= 180:
+        return 90
+
+
 def plot(cf):
     num_plots = 2
     _, axs = plt.subplots(1, num_plots, figsize=(num_plots * 5, 5))
@@ -25,7 +36,7 @@ def plot(cf):
     
     axs[0].plot(cf.forecast_data, label="Prediction")
     axs[0].plot(cf.data, label="Actual")
-    axs[0].set_title(f"{cf.ticker} Future Predictions")
+    axs[0].set_title(f"{cf.ticker} Future Predictions for {cf.args.future} Days")
     axs[0].set_xlabel("Days")
     axs[0].set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
     axs[0].legend()
@@ -37,14 +48,14 @@ def plot(cf):
 
     axs[1].plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
     axs[1].plot(cf.data[-cf.future_days:], label="Actual")
-    axs[1].set_title(f"{cf.ticker} Future Predictions")
+    axs[1].set_title(f"{cf.ticker} Future Predictions for {cf.future_days} days")
     axs[1].set_xlabel("Days")
     axs[1].set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
     axs[1].legend()
     axs[1].grid(True)
     axs[1].xaxis_date()
     axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
-    axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=7))
+    axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=get_interval(cf.future_days)))
     
     plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right")
     plt.tight_layout()
