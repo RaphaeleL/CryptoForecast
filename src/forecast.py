@@ -1,5 +1,5 @@
 import os
-import time
+import glob
 import datetime
 import argparse
 import numpy as np
@@ -28,17 +28,15 @@ class CryptoForecast:
         self.args = self.parse_args()
         self.end_date = self.get_end_date()
         self.ticker = self.args.coin if ticker is None else ticker
+        self.weight_path = create_cloud_path(self.args.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.should_retrain = self.args.retrain
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.stretch_factor = 24
-        self.strechted = not minutely
         self.raw_data = None
         self.data = self.get_data()
         self.X, self.y = self.create_x_y_split()
-        self.weight_path = self.create_weight_path()
         self.model = self.create_nn()
         self.forecast_data = None
-        self.future_days = 30
+        self.future_days = self.args.future
 
     def set_retrain(self, should_retrain):
         self.should_retrain = should_retrain
@@ -69,30 +67,20 @@ class CryptoForecast:
         return X_train, y_train
 
     def create_nn(self):
-        model = Sequential(
-            [
-                Conv1D(64, 1, activation="relu", input_shape=(1, self.X.shape[2])),
-                Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-                Dropout(0.2),
-                Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-                Dropout(0.2),
-                Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
-                Dropout(0.2),
-                Flatten(),
-                Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
-                Dense(1),
-            ]
-        )
+        model = Sequential([
+            Conv1D(64, 1, activation="relu", input_shape=(1, self.X.shape[2])),
+            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Dropout(0.2),
+            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Dropout(0.2),
+            Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
+            Dropout(0.2),
+            Flatten(),
+            Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
+            Dense(1),
+        ])
         model.compile(optimizer=Adam(0.001), loss="mse")
-        if os.path.isfile(self.weight_path):
-            model.load_weights(self.weight_path)
         return model
-
-    def create_weight_path(self):
-        path = "weights/"
-        if not os.path.exists(path):
-            os.makedirs(path)
-        return path + f"{self.ticker}.h5"
 
     def train(self, X_train, y_train):
         callbacks = [TqdmCallback(verbose=1)] if self.should_retrain else []
@@ -106,8 +94,17 @@ class CryptoForecast:
                 callbacks=callbacks,
             )
         else:
-            if os.path.isfile(self.weight_path):
-                self.model.load_weights(self.weight_path)
+            # TODO: This is called for every Fold, one global call would be better
+            if self.args.weights is not None:
+                if os.path.isfile(self.args.weights):
+                    cprint(f"Used model weights from '{self.args.weights}'", "green")
+                    self.model.load_weights(self.args.weights)
+            else:
+                path = os.path.join(get_dafault_bw_path(), "weights", self.ticker, "*.h5")
+                files = glob.glob(path)
+                if os.path.isfile(files[-1]):
+                    cprint(f"Used model weights from '{files[-1]}'", "green")
+                    self.model.load_weights(files[-1])
 
     def parse_args(self):
         argparser = argparse.ArgumentParser(description="Cryptocurrency Forecast")
@@ -117,6 +114,8 @@ class CryptoForecast:
         argparser.add_argument("--folds", type=int, default=6)
         argparser.add_argument("--retrain", action="store_true")
         argparser.add_argument("--path", type=str, default=get_dafault_bw_path())
+        argparser.add_argument("--weights", type=str, default=None)
+        argparser.add_argument("--future", type=int, default=30)
         args = argparser.parse_args()
         return args
 
@@ -174,7 +173,7 @@ class CryptoForecast:
             last_window[-1] = next_day_prediction
 
         future_predictions = self.scaler.inverse_transform(future_predictions)
-        start_date = self.raw_data.index[-1] + pd.Timedelta(days=1)
+        start_date = self.raw_data.index[-1]
         end_date = start_date + pd.Timedelta(days=self.future_days - 1)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
         future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
