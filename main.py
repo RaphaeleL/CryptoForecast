@@ -19,25 +19,10 @@ def main(cf=CryptoForecast()):
         cf.stop_time()
         return
 
-    if cf.args.debug:
-        actual_data = cf.backtest()
-        cf.stop_time()
-        cf.visualize_backtest(actual_data)
-        return
-
-    if cf.args.auto:
-        for ticker in get_full_ticker_list():
-            tcf = CryptoForecast(ticker)
-            tcf.load_history()
-            tcf.predict_future()
-            tcf.stop_time()
-            tcf.generate_metric()
-        return
-
     cf.load_history()
-    cf.predict_future()
-    cf.stop_time()
-    cf.generate_metric()
+    cf.predict_future(cf.future_days)
+    # cf.stop_time()
+    # cf.generate_metric()
     cf.visualize()
 
 if __name__ == "__main__":

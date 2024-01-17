@@ -17,7 +17,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.utils import (
     cprint,
     plot,
-    plot_backtest,
     extract_min_max,
     create_cloud_path,
     get_dafault_bw_path
@@ -33,40 +32,26 @@ class CryptoForecast:
         self.args = self.parse_args()
         self.end_date = self.get_end_date()
         self.ticker = self.args.coin if ticker is None else ticker
-        self.prediction_days = self.args.prediction
         self.should_retrain = self.args.retrain
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.stretch_factor = 24
         self.strechted = not minutely
-        self.data = self.get_data(stretch=not minutely)
+        self.raw_data = None
+        self.data = self.get_data()
         self.X, self.y = self.create_x_y_split()
         self.weight_path = self.create_weight_path()
         self.model = self.create_nn()
         self.forecast_data = None
+        self.future_days = 30
 
     def set_retrain(self, should_retrain):
         self.should_retrain = should_retrain
 
-    def get_data(self, stretch=False, period="max", interval="1d"):
-        # NOTE: YF is not Thread Safe
-        stretch_factor = self.stretch_factor
-        if not self.args.minutely:
-            raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
-            data = raw_data[["Close"]]
-            data.reset_index(inplace=True)
-            data.set_index("Date", inplace=True)
-            if stretch:
-                data.index = pd.to_datetime(data.index)
-                interval = f"{int(24 / stretch_factor)}H"
-                stretched = data.resample(interval).interpolate(method="time")
-                return stretched
-            return data
-        raw_data = yf.download(self.ticker, period=period, interval="1m", progress=False)
-        data = raw_data[["Close"]]
+    def get_data(self, period="max", interval="1d"):
+        self.raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
+        data = self.raw_data[["Close"]]
         data.reset_index(inplace=True)
-        data.set_index("Datetime", inplace=True)
-        if self.args.debug:
-            data = data[data.index <= self.end_date]
+        data.set_index("Date", inplace=True)
         return data
 
     def create_x_y_split(self):
@@ -134,12 +119,12 @@ class CryptoForecast:
         argparser.add_argument("--batch_size", type=int, default=1024)
         argparser.add_argument("--epochs", type=int, default=200)
         argparser.add_argument("--folds", type=int, default=6)
-        argparser.add_argument("--prediction", type=int, default=7)
+        # argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
-        argparser.add_argument("--minutely", action="store_true")
-        argparser.add_argument("--debug", action="store_true")
-        argparser.add_argument("--auto", action="store_true")
-        argparser.add_argument("--path", type=str, default=get_dafault_bw_path())  # TODO
+        # argparser.add_argument("--minutely", action="store_true")
+        # argparser.add_argument("--debug", action="store_true")
+        # argparser.add_argument("--auto", action="store_true")
+        argparser.add_argument("--path", type=str, default=get_dafault_bw_path())
         args = argparser.parse_args()
         return args
 
@@ -186,32 +171,27 @@ class CryptoForecast:
 
         return all_train_pred, all_actuals_df
 
-    def predict_future(self):
-        def prepare_future_input():
-            input_window_size = self.args.prediction * 24
-            if isinstance(self.X, pd.DataFrame):
-                self.X = self.X.values
-            if len(self.X) < input_window_size:
-                raise ValueError("Not enough data to prepare future input.")
-            future_input = self.X[-input_window_size:]
-            return future_input
+    def predict_future(self, prediction_days=30):
+        future_predictions = []
+        last_window = self.X[-1]
 
-        pred_h = self.prediction_days * 24
+        for _ in range(prediction_days):
+            next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
+            future_predictions.append(next_day_prediction[0])
+            last_window = np.roll(last_window, -1)
+            last_window[-1] = next_day_prediction
 
-        self.train(self.X, self.y)
-        future_input = prepare_future_input()
-        future_prediction = self.model.predict(future_input, verbose=0)
-        prediction = self.scaler.inverse_transform(future_prediction)
-        next_day = self.data.index[-1] + pd.Timedelta(hours=1)
-        future_dates = pd.date_range(start=next_day, periods=pred_h, freq="H")
-        res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
-        self.forecast_data = res
+        future_predictions = self.scaler.inverse_transform(future_predictions)
+        start_date = self.raw_data.index[-1] + pd.Timedelta(days=1)
+        end_date = start_date + pd.Timedelta(days=prediction_days - 1)
+        date_range = pd.date_range(start=start_date, end=end_date, freq="D")
+        future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
+        
+        self.forecast_data = future_predictions
+
 
     def visualize(self):
-        plot(self.forecast_data, self.ticker)
-
-    def visualize_backtest(self, actual_data):
-        plot_backtest(self.forecast_data, actual_data, self.ticker)
+        plot(self)
 
     def stop_time(self):
         self.duration = round((time.time() - self.start_time), 1)
@@ -258,20 +238,6 @@ class CryptoForecast:
 
         validate(self)
         self.save_metrics()
-
-    def backtest(self):
-        self.load_history()
-        self.predict_future()
-
-        backtest_period = yf.download(
-            self.ticker,
-            start=self.end_date,
-            end=datetime.datetime.now(),
-            interval="1d",
-            progress=False,
-        )
-        actual_data = backtest_period[["Close"]]
-        return actual_data
 
     def save_prediction(self):
         # TODO: This is gonna be a total mess on my Cloud! Need to find a better way

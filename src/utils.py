@@ -14,47 +14,39 @@ colors = {
     "cyan": "\033[96m",
     "end": "\033[0m",
 }
-formatter = mdates.DateFormatter("%Y-%m-%d %H:%M")
-locator = mdates.DayLocator(interval=1)
 
 
-def style_plot(ax):
-    ax.legend()
-    ax.grid(True)
-    ax.xaxis_date()
-    ax.xaxis.set_major_formatter(formatter)
-    ax.xaxis.set_major_locator(locator)
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+def plot(cf):
+    num_plots = 2
+    _, axs = plt.subplots(1, num_plots, figsize=(num_plots * 5, 5))
 
+    axs[0].plot(cf.forecast_data, label="Prediction")
+    axs[0].plot(cf.data, label="Actual")
+    axs[0].set_title(f"{cf.ticker} Future Predictions")
+    axs[0].set_xlabel("Days")
+    axs[0].set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
+    axs[0].legend()
+    axs[0].grid(True)
+    axs[0].xaxis_date()
+    axs[0].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
+    axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=120))
+    plt.setp(axs[0].get_xticklabels(), rotation=45, ha="right")
 
-def plot(forecast_data, ticker):
-    fig, ax = plt.subplots(figsize=(12, 6))
-    x = forecast_data.index
-    y = forecast_data["Prediction"]
-    ax.plot(x, y, label="Prediction", alpha=0.7)
-    ax.set_title(f"{ticker} Future Predictions")
-    ax.set_xlabel("Days")
-    ax.set_ylabel(f"Price in {ticker.split('-')[1]}")
-    style_plot(ax)
+    axs[1].plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
+    axs[1].plot(cf.data[-cf.future_days:], label="Actual")
+    axs[1].set_title(f"{cf.ticker} Future Predictions")
+    axs[1].set_xlabel("Days")
+    axs[1].set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
+    axs[1].legend()
+    axs[1].grid(True)
+    axs[1].xaxis_date()
+    axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
+    axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=7))
+    
+    plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right")
     plt.tight_layout()
-    plt.show()
-
-
-def plot_backtest(forecast_data, actual_data, ticker):
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(
-        forecast_data.index,
-        forecast_data["Prediction"],
-        label="Predicted Data",
-        alpha=0.7,
-    )
-    ax.plot(actual_data.index, actual_data["Close"], label="Actual Data", alpha=0.7)
-    ax.set_title(f"{ticker} Backtest Results")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Price")
-    style_plot(ax)
-    ax.get_xaxis().set_visible(False)
-    plt.tight_layout()
+    filepath = create_cloud_path(cf.args.path, ticker=cf.ticker, typeof="plots", filetype="png")
+    plt.savefig(filepath)
     plt.show()
 
 
