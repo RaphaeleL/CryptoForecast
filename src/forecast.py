@@ -17,18 +17,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.utils import (
     cprint,
     plot,
-    extract_min_max,
     create_cloud_path,
     get_dafault_bw_path
 )
-from src.validation import psa, validate
 
 
 class CryptoForecast:
     def __init__(self, ticker=None, minutely=False):
-        self.start_time = time.time()
         self.metric = ""
-        self.duration = time.time()
         self.args = self.parse_args()
         self.end_date = self.get_end_date()
         self.ticker = self.args.coin if ticker is None else ticker
@@ -119,11 +115,7 @@ class CryptoForecast:
         argparser.add_argument("--batch_size", type=int, default=1024)
         argparser.add_argument("--epochs", type=int, default=200)
         argparser.add_argument("--folds", type=int, default=6)
-        # argparser.add_argument("--prediction", type=int, default=7)
         argparser.add_argument("--retrain", action="store_true")
-        # argparser.add_argument("--minutely", action="store_true")
-        # argparser.add_argument("--debug", action="store_true")
-        # argparser.add_argument("--auto", action="store_true")
         argparser.add_argument("--path", type=str, default=get_dafault_bw_path())
         args = argparser.parse_args()
         return args
@@ -136,7 +128,7 @@ class CryptoForecast:
         )
         return today
 
-    def load_history(self, agent=-1, should_save=True):
+    def load_history(self):
         all_train_pred = pd.DataFrame()
         all_actuals_df = pd.DataFrame()
 
@@ -165,7 +157,7 @@ class CryptoForecast:
                 all_train_pred = pd.concat([all_train_pred, train_pred_fold])
                 all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
 
-        if self.should_retrain and should_save and agent >= 0:
+        if self.should_retrain:
             self.model.save_weights(self.weight_path)
             cprint(f"Saved model weights to '{self.weight_path}'", "green")
 
@@ -189,63 +181,11 @@ class CryptoForecast:
         
         self.forecast_data = future_predictions
 
+        self.save_prediction()
 
     def visualize(self):
         plot(self)
 
-    def stop_time(self):
-        self.duration = round((time.time() - self.start_time), 1)
-
-    def generate_metric(self, plattform="Coinbase"):
-        self.save_prediction()
-        fees = {"Coinbase": 0.05}
-        ticker = yf.Ticker(self.ticker).info["name"] + " (" + self.ticker.split("-")[1] + ")"
-        (
-            min_index,
-            min_value,
-            max_index,
-            max_value,
-            global_min_index,
-            global_min_value,
-            global_max_index,
-            global_max_value,
-        ) = extract_min_max(self)
-        change_l = (((max_value - min_value) / min_value) - fees[plattform]) * 100
-        change_g = (
-            ((global_max_value - global_min_value) / global_min_value) - 0.05
-        ) * 100
-
-        min_str = f"{min_value:.2f} {self.ticker.split('-')[1]}"
-        max_str = f"{max_value:.2f} {self.ticker.split('-')[1]}"
-
-        global_min_str = f"{global_min_value:.2f} {self.ticker.split('-')[1]}"
-        global_max_str = f"{global_max_value:.2f} {self.ticker.split('-')[1]}"
-
-        global_hint, local_hint = (
-            "└── Global Extrem Values",
-            "└── Logical Trend & Buy Recommendation",
-        )
-        res = f"{ticker}\n{local_hint}\n"
-
-        res += psa("Minimum", 4, min_index + " with " + min_str, False) + "\n"
-        res += psa("Maximum", 4, max_index + " with " + max_str, False) + "\n"
-        res += psa("Trend", 4, f"{round(change_l, 1)}%", True) + "\n"
-        res += global_hint + "\n"
-        res += psa("Minimum", 4, global_min_index + " with " + global_min_str, False) + "\n"
-        res += psa("Maximum", 4, global_max_index + " with " + global_max_str, False) + "\n"
-        res += psa("Trend", 4, f"{round(change_g, 1)}%", True) + "\n"
-        self.metric = res
-
-        validate(self)
-        self.save_metrics()
-
     def save_prediction(self):
-        # TODO: This is gonna be a total mess on my Cloud! Need to find a better way
-        #       to handle this, maybe overwrite the path every time.
         filepath = create_cloud_path(self.args.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
         self.forecast_data.to_csv(filepath, index=True)
-
-    def save_metrics(self):
-        print(self.metric)
-        filepath = create_cloud_path(self.args.path, ticker=self.ticker, typeof="metrics", filetype="txt")
-        open(filepath, "w+", encoding="utf-8").write(self.metric)

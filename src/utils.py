@@ -65,68 +65,6 @@ def get_top_50_tickers():
 def get_weight_file_tickers():
     return glob.glob("weights/*.h5")
 
-
-def get_full_ticker_list():
-    result = []
-    for weight_ticker in get_weight_file_tickers():
-        for ticker in get_top_50_tickers():
-            if ticker in weight_ticker:
-                result.append(ticker + "-EUR")
-    return result
-
-
-def extract_min_max(cf):
-    current_fmt, new_fmt = (
-        "%Y-%m-%d %H:%M:%S" if not cf.args.minutely else "%Y-%m-%d %H:%M:%S%z",
-        "%d. %b %Y - %H:%M",
-    )
-
-    max_difference = 0
-    min_index, max_index = None, None
-    min_value, max_value = None, None
-    global_min_value, global_max_value = float("inf"), float("-inf")
-    global_min_index, global_max_index = None, None
-
-    for i in range(len(cf.forecast_data) - 1):
-        for j in range(i + 1, len(cf.forecast_data)):
-            difference = (
-                cf.forecast_data["Prediction"].iloc[j]
-                - cf.forecast_data["Prediction"].iloc[i]
-            )
-            if difference > max_difference:
-                max_difference = difference
-                min_index = cf.forecast_data.index[i]
-                max_index = cf.forecast_data.index[j]
-                min_value = cf.forecast_data["Prediction"].iloc[i]
-                max_value = cf.forecast_data["Prediction"].iloc[j]
-
-        current_value = cf.forecast_data["Prediction"].iloc[i]
-        if current_value < global_min_value:
-            global_min_value = current_value
-            global_min_index = cf.forecast_data.index[i]
-        if current_value > global_max_value:
-            global_max_value = current_value
-            global_max_index = cf.forecast_data.index[i]
-
-    min_index = datetime.datetime.strptime(str(min_index), current_fmt).strftime(new_fmt)
-    max_index = datetime.datetime.strptime(str(max_index), current_fmt).strftime(new_fmt)
-    global_min_index = datetime.datetime.strptime(
-        str(global_min_index), current_fmt).strftime(new_fmt)
-    global_max_index = datetime.datetime.strptime(
-        str(global_max_index), current_fmt).strftime(new_fmt)
-
-    return (
-        min_index,
-        min_value,
-        max_index,
-        max_value,
-        global_min_index,
-        global_min_value,
-        global_max_index,
-        global_max_value,
-    )
-
-
 def save_prediction(predictions, path):
     predictions.to_csv(path, index=True)
 
