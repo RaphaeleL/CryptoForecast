@@ -30,10 +30,7 @@ python main.py --coin ETH-USD --retrain
 - `--batch_size`: Size of batches used in training (default: 32).
 - `--epochs`: Number of epochs for training the model (default: 100).
 - `--folds`: Number of Folds for the KFold (default: 5).
-- `--prediction`: Number of days to predict. Use -1 for full test data prediction (default: -1).
 - `--retrain`: (Re-) Train the Ticker. 
-- `--debug`: Predict the History with Weights and see how the Model is working.
-- `--auto`: Use all Available Tickers (for those with a Weight File) and Predict the Future for them.
 - `--path`: Location of the `forecast/` and `metrics/` folder, aka. the Results of the Prediction (default: '~/bwSyncShare/PadWise-Trading')
 
 ## Model Architecture
