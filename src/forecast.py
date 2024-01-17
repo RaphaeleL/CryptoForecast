@@ -36,7 +36,7 @@ class CryptoForecast:
         self.X, self.y = self.create_x_y_split()
         self.model = self.create_nn()
         self.forecast_data = None
-        self.future_days = self.args.future
+        self.future_days = self.args.future + 1
 
     def set_retrain(self, should_retrain):
         self.should_retrain = should_retrain
