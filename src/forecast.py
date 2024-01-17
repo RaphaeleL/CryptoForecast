@@ -163,11 +163,11 @@ class CryptoForecast:
 
         return all_train_pred, all_actuals_df
 
-    def predict_future(self, prediction_days=30):
+    def predict_future(self):
         future_predictions = []
         last_window = self.X[-1]
 
-        for _ in range(prediction_days):
+        for _ in range(self.future_days):
             next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
             future_predictions.append(next_day_prediction[0])
             last_window = np.roll(last_window, -1)
@@ -175,10 +175,9 @@ class CryptoForecast:
 
         future_predictions = self.scaler.inverse_transform(future_predictions)
         start_date = self.raw_data.index[-1] + pd.Timedelta(days=1)
-        end_date = start_date + pd.Timedelta(days=prediction_days - 1)
+        end_date = start_date + pd.Timedelta(days=self.future_days - 1)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
         future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
-        
         self.forecast_data = future_predictions
 
         self.save_prediction()

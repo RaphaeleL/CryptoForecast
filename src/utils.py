@@ -20,6 +20,9 @@ def plot(cf):
     num_plots = 2
     _, axs = plt.subplots(1, num_plots, figsize=(num_plots * 5, 5))
 
+    # TODO: The Forecast Data Plot should contain the Training Data as well
+    #       not just the Test Data
+    
     axs[0].plot(cf.forecast_data, label="Prediction")
     axs[0].plot(cf.data, label="Actual")
     axs[0].set_title(f"{cf.ticker} Future Predictions")
@@ -29,7 +32,7 @@ def plot(cf):
     axs[0].grid(True)
     axs[0].xaxis_date()
     axs[0].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
-    axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=120))
+    axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=150))
     plt.setp(axs[0].get_xticklabels(), rotation=45, ha="right")
 
     axs[1].plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
@@ -65,8 +68,10 @@ def get_top_50_tickers():
 def get_weight_file_tickers():
     return glob.glob("weights/*.h5")
 
+
 def save_prediction(predictions, path):
     predictions.to_csv(path, index=True)
+
 
 def get_dafault_bw_path():
     return os.path.join(os.path.expanduser('~'), "bwSyncShare", "PadWise-Trading")
