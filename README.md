@@ -31,7 +31,9 @@ python main.py --coin ETH-USD --retrain
 - `--epochs`: Number of epochs for training the model (default: 100).
 - `--folds`: Number of Folds for the KFold (default: 5).
 - `--retrain`: (Re-) Train the Ticker. 
-- `--path`: Location of the `forecast/` and `metrics/` folder, aka. the Results of the Prediction (default: '~/bwSyncShare/PadWise-Trading')
+- `--path`: Location of the `forecast/` and `plots/` folder, aka. the Results of the Prediction (default: '~/bwSyncShare/PadWise-Trading')
+- `--weights`: Location of your Weight File (`weights/*.h5`), that you want to use. The default Location so save those Files is the same like in `--path`.
+- `--future`: How many days do you want to predict the future (default: 30)? 
 
 ## Model Architecture
 
