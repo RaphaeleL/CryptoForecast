@@ -15,7 +15,6 @@ from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.utils import (
-    cprint,
     plot,
     create_cloud_path,
     get_dafault_bw_path
@@ -23,11 +22,11 @@ from src.utils import (
 
 
 class CryptoForecast:
-    def __init__(self, ticker=None, minutely=False):
+    def __init__(self):
         self.metric = ""
         self.args = self.parse_args()
         self.end_date = self.get_end_date()
-        self.ticker = self.args.coin if ticker is None else ticker
+        self.ticker = self.args.coin
         self.weight_path = create_cloud_path(self.args.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.should_retrain = self.args.retrain
         self.scaler = MinMaxScaler(feature_range=(0, 1))
@@ -36,7 +35,7 @@ class CryptoForecast:
         self.X, self.y = self.create_x_y_split()
         self.model = self.create_nn()
         self.forecast_data = None
-        self.future_days = self.args.future + 1
+        self.future_days = self.args.future
 
     def set_retrain(self, should_retrain):
         self.should_retrain = should_retrain
@@ -84,27 +83,26 @@ class CryptoForecast:
 
     def train(self, X_train, y_train):
         callbacks = [TqdmCallback(verbose=1)] if self.should_retrain else []
-        if self.should_retrain:
-            self.model.fit(
-                X_train,
-                y_train,
-                batch_size=self.args.batch_size,
-                epochs=self.args.epochs,
-                verbose=0,
-                callbacks=callbacks,
-            )
+        self.model.fit(
+            X_train,
+            y_train,
+            batch_size=self.args.batch_size,
+            epochs=self.args.epochs,
+            verbose=0,
+            callbacks=callbacks,
+        )
+        
+    def load_weights(self):
+        if self.args.weights is not None:
+            if os.path.isfile(self.args.weights):
+                print(f"Used model weights from '{self.args.weights}'")
+                self.model.load_weights(self.args.weights)
         else:
-            # TODO: This is called for every Fold, one global call would be better
-            if self.args.weights is not None:
-                if os.path.isfile(self.args.weights):
-                    cprint(f"Used model weights from '{self.args.weights}'", "green")
-                    self.model.load_weights(self.args.weights)
-            else:
-                path = os.path.join(get_dafault_bw_path(), "weights", self.ticker, "*.h5")
-                files = glob.glob(path)
-                if os.path.isfile(files[-1]):
-                    cprint(f"Used model weights from '{files[-1]}'", "green")
-                    self.model.load_weights(files[-1])
+            path = os.path.join(get_dafault_bw_path(), "weights", self.ticker, "*.h5")
+            files = glob.glob(path)
+            if os.path.isfile(files[-1]):
+                print(f"Used model weights from '{files[-1]}'")
+                self.model.load_weights(files[-1])
 
     def parse_args(self):
         argparser = argparse.ArgumentParser(description="Cryptocurrency Forecast")
@@ -133,11 +131,15 @@ class CryptoForecast:
 
         kf = KFold(n_splits=self.args.folds, shuffle=False)
 
+        if not self.should_retrain:
+            self.load_weights()
+
         def train_fold(train_index, test_index):
             X_train, X_test, y_train, y_test = self.split(
                 self.X, self.y, train_index, test_index
             )
-            self.train(X_train, y_train)
+            if self.should_retrain:
+                self.train(X_train, y_train)
             pred = self.scaler.inverse_transform(self.model.predict(X_test, verbose=0))
 
             idx = self.data.index[test_index].to_pydatetime()
@@ -158,7 +160,7 @@ class CryptoForecast:
 
         if self.should_retrain:
             self.model.save_weights(self.weight_path)
-            cprint(f"Saved model weights to '{self.weight_path}'", "green")
+            print(f"Saved model weights to '{self.weight_path}'")
 
         return all_train_pred, all_actuals_df
 
@@ -166,7 +168,7 @@ class CryptoForecast:
         future_predictions = []
         last_window = self.X[-1]
 
-        for _ in range(self.future_days):
+        for _ in range(self.future_days + 1):
             next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
             future_predictions.append(next_day_prediction[0])
             last_window = np.roll(last_window, -1)
@@ -174,7 +176,7 @@ class CryptoForecast:
 
         future_predictions = self.scaler.inverse_transform(future_predictions)
         start_date = self.raw_data.index[-1]
-        end_date = start_date + pd.Timedelta(days=self.future_days - 1)
+        end_date = start_date + pd.Timedelta(days=self.future_days)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
         future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
         self.forecast_data = future_predictions
