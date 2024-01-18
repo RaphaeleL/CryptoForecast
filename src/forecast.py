@@ -159,7 +159,7 @@ class CryptoForecast:
     def visualize(self):
         for i, (index, value) in enumerate(self.forecast_data.iterrows()):
             print(f"Predicted Price for {index.strftime('%d. %b %Y')}: ", end="")
-            print(f"{round(value[0], 2)} {self.ticker.split('-')[1]} ", end="")
+            print(f"{round(value[0], 2)} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
             print(f"({'Today' if i == 0 else 'Day ' + str(i) + ''})")
         plot(self)
 
