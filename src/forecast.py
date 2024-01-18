@@ -1,7 +1,5 @@
 import os
 import glob
-import datetime
-import argparse
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -22,30 +20,33 @@ from src.utils import (
 
 
 class CryptoForecast:
-    def __init__(self):
-        self.metric = ""
-        self.args, self.argparser = self.parse_args()
-        self.end_date = self.get_end_date()
-        self.ticker = self.args.coin
-        self.weight_path = create_cloud_path(self.args.path, ticker=self.ticker, typeof="weights", filetype="h5")
-        self.should_retrain = self.args.retrain
+    def __init__(self, epochs, batch_size, ticker, folds, retrain, path, weights, future_days):
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.ticker = ticker
+        self.folds = folds
+        self.retrain = retrain
+        self.path = path
+        self.weights = weights
+        self.future_days = future_days
+        
+        self.weight_path = create_cloud_path(self.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.raw_data = None
-        self.data = self.get_data()
-        self.X, self.y = self.create_x_y_split()
-        self.model = self.create_nn()
-        self.forecast_data = None
-        self.future_days = self.args.future
+        
+        self.data, self.X, self.Y, self.raw_data = None, None, None, None
 
-    def set_retrain(self, should_retrain):
-        self.should_retrain = should_retrain
+        self.forecast_data = None
+
+        self.get_data()
+        self.create_x_y_split()
+        self.build_model()
 
     def get_data(self, period="max", interval="1d"):
         self.raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
-        data = self.raw_data[["Close"]]
-        data.reset_index(inplace=True)
-        data.set_index("Date", inplace=True)
-        return data
+        self.data = self.raw_data[["Close"]]
+        self.data.reset_index(inplace=True)
+        self.data.set_index("Date", inplace=True)
+        
 
     def create_x_y_split(self):
         data = self.scaler.fit_transform(self.data)
@@ -54,7 +55,7 @@ class CryptoForecast:
             a = data[i : i + 1, 0]
             dataX.append(a)
             dataY.append(data[i + 1, 0])
-        return np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
+        self.X, self.y = np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
 
     def split(self, X, y, train_index, test_index):
         X_train = X[train_index]
@@ -65,8 +66,8 @@ class CryptoForecast:
             return X_train, X_test, y_train, y_test
         return X_train, y_train
 
-    def create_nn(self):
-        model = Sequential([
+    def build_model(self):
+        self.model = Sequential([
             Conv1D(64, 1, activation="relu", input_shape=(1, self.X.shape[2])),
             Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
             Dropout(0.2),
@@ -78,25 +79,24 @@ class CryptoForecast:
             Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
             Dense(1),
         ])
-        model.compile(optimizer=Adam(0.001), loss="mse")
-        return model
+        self.model.compile(optimizer=Adam(0.001), loss="mse")
 
     def train(self, X_train, y_train):
-        callbacks = [TqdmCallback(verbose=1)] if self.should_retrain else []
+        callbacks = [TqdmCallback(verbose=1)] if self.retrain else []
         self.model.fit(
             X_train,
             y_train,
-            batch_size=self.args.batch_size,
-            epochs=self.args.epochs,
+            batch_size=self.batch_size,
+            epochs=self.epochs,
             verbose=0,
             callbacks=callbacks,
         )
         
     def load_weights(self):
-        if self.args.weights is not None:
-            if os.path.isfile(self.args.weights):
-                print(f"Used model weights from '{self.args.weights}'")
-                self.model.load_weights(self.args.weights)
+        if self.weights is not None:
+            if os.path.isfile(self.weights):
+                print(f"Used model weights from '{self.weights}'")
+                self.model.load_weights(self.weights)
         else:
             path = os.path.join(get_dafault_bw_path(), "weights", self.ticker, "*.h5")
             files = glob.glob(path)
@@ -104,42 +104,20 @@ class CryptoForecast:
                 print(f"Used model weights from '{files[-1]}'")
                 self.model.load_weights(files[-1])
 
-    def parse_args(self):
-        argparser = argparse.ArgumentParser(add_help=False)
-        argparser.add_argument("-h", "--help", action="store_true", help="Show this help message and exit")
-        argparser.add_argument("-c", "--coin", type=str, default="LTC-EUR", help="Coin to predict")
-        argparser.add_argument("-b", "--batch_size", type=int, default=1024, help="Batch size")
-        argparser.add_argument("-e", "--epochs", type=int, default=200, help="Number of epochs")
-        argparser.add_argument("-f", "--folds", type=int, default=6, help="Number of folds")
-        argparser.add_argument("-t", "--retrain", action="store_true", help="(Re-)train the model")
-        argparser.add_argument("-p", "--path", type=str, default=get_dafault_bw_path(), help="Path to save the results")
-        argparser.add_argument("-w", "--weights", type=str, default=None, help="Path to model weight file")
-        argparser.add_argument("-d", "--future", type=int, default=7, help="Number of days to predict")
-        args = argparser.parse_args()
-        return args, argparser
-
-    def get_end_date(self):
-        today = datetime.date(
-            datetime.datetime.now().year,
-            datetime.datetime.now().month,
-            datetime.datetime.now().day - 7,
-        )
-        return today
-
     def load_history(self):
         all_train_pred = pd.DataFrame()
         all_actuals_df = pd.DataFrame()
 
-        tss = TimeSeriesSplit(n_splits=self.args.folds)
+        tss = TimeSeriesSplit(n_splits=self.folds)
 
-        if not self.should_retrain:
+        if not self.retrain:
             self.load_weights()
 
         def train_fold(train_index, test_index):
             X_train, X_test, y_train, y_test = self.split(
                 self.X, self.y, train_index, test_index
             )
-            if self.should_retrain:
+            if self.retrain:
                 self.train(X_train, y_train)
             pred = self.scaler.inverse_transform(self.model.predict(X_test, verbose=0))
 
@@ -149,7 +127,7 @@ class CryptoForecast:
             actuals_fold = pd.DataFrame(actuals, index=idx, columns=["Actual"])
             return train_pred_fold, actuals_fold
 
-        with ThreadPoolExecutor(max_workers=self.args.folds) as executor:
+        with ThreadPoolExecutor(max_workers=self.folds) as executor:
             futures = [
                 executor.submit(train_fold, train_index, test_index)
                 for train_index, test_index in tss.split(self.X)
@@ -159,7 +137,7 @@ class CryptoForecast:
                 all_train_pred = pd.concat([all_train_pred, train_pred_fold])
                 all_actuals_df = pd.concat([all_actuals_df, actuals_fold])
 
-        if self.should_retrain:
+        if self.retrain:
             self.model.save_weights(self.weight_path)
             print(f"Saved model weights to '{self.weight_path}'")
 
@@ -185,8 +163,12 @@ class CryptoForecast:
         self.save_prediction()
 
     def visualize(self):
+        for predicted_price in self.forecast_data["Prediction"]:
+            index = self.forecast_data[self.forecast_data["Prediction"] == predicted_price].index
+            value = self.forecast_data[self.forecast_data["Prediction"] == predicted_price].values
+            print(value, index)
         plot(self)
 
     def save_prediction(self):
-        filepath = create_cloud_path(self.args.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
+        filepath = create_cloud_path(self.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
         self.forecast_data.to_csv(filepath, index=True)
