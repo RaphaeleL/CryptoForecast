@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from sklearn.model_selection import KFold
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import MinMaxScaler
 from keras import Sequential
 from keras.regularizers import l2
@@ -129,7 +129,7 @@ class CryptoForecast:
         all_train_pred = pd.DataFrame()
         all_actuals_df = pd.DataFrame()
 
-        kf = KFold(n_splits=self.args.folds, shuffle=False)
+        tss = TimeSeriesSplit(n_splits=self.args.folds)
 
         if not self.should_retrain:
             self.load_weights()
@@ -151,7 +151,7 @@ class CryptoForecast:
         with ThreadPoolExecutor(max_workers=self.args.folds) as executor:
             futures = [
                 executor.submit(train_fold, train_index, test_index)
-                for train_index, test_index in kf.split(self.X)
+                for train_index, test_index in tss.split(self.X)
             ]
             for future in as_completed(futures):
                 train_pred_fold, actuals_fold = future.result()
