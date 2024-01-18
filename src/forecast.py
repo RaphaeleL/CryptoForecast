@@ -12,11 +12,7 @@ from keras.layers import Dense, LSTM, Conv1D, Flatten, Bidirectional, Dropout
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from src.utils import (
-    plot,
-    create_cloud_path,
-    get_dafault_bw_path
-)
+from src.utils import plot, create_cloud_path, get_dafault_bw_path
 
 
 class CryptoForecast:
@@ -34,7 +30,6 @@ class CryptoForecast:
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         
         self.data, self.X, self.Y, self.raw_data = None, None, None, None
-
         self.forecast_data = None
 
         self.get_data()
@@ -46,7 +41,6 @@ class CryptoForecast:
         self.data = self.raw_data[["Close"]]
         self.data.reset_index(inplace=True)
         self.data.set_index("Date", inplace=True)
-        
 
     def create_x_y_split(self):
         data = self.scaler.fit_transform(self.data)
@@ -163,10 +157,10 @@ class CryptoForecast:
         self.save_prediction()
 
     def visualize(self):
-        for predicted_price in self.forecast_data["Prediction"]:
-            index = self.forecast_data[self.forecast_data["Prediction"] == predicted_price].index
-            value = self.forecast_data[self.forecast_data["Prediction"] == predicted_price].values
-            print(value, index)
+        for i, (index, value) in enumerate(self.forecast_data.iterrows()):
+            print(f"Predicted Price for {index.strftime('%d. %b %Y')}: ", end="")
+            print(f"{round(value[0], 2)} {self.ticker.split('-')[1]} ", end="")
+            print(f"({'Today' if i == 0 else 'Day ' + str(i) + ''})")
         plot(self)
 
     def save_prediction(self):
