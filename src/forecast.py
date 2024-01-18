@@ -25,7 +25,6 @@ class CryptoForecast:
     def __init__(self):
         self.metric = ""
         self.args = self.parse_args()
-        self.end_date = self.get_end_date()
         self.ticker = self.args.coin
         self.weight_path = create_cloud_path(self.args.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.should_retrain = self.args.retrain
@@ -41,10 +40,11 @@ class CryptoForecast:
         self.should_retrain = should_retrain
 
     def get_data(self, period="max", interval="1d"):
+        interval = "1m" if self.args.min else "1d"
         self.raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
         data = self.raw_data[["Close"]]
         data.reset_index(inplace=True)
-        data.set_index("Date", inplace=True)
+        data.set_index("Date" if not self.args.min else "Datetime", inplace=True)
         return data
 
     def create_x_y_split(self):
@@ -114,16 +114,9 @@ class CryptoForecast:
         argparser.add_argument("--path", type=str, default=get_dafault_bw_path())
         argparser.add_argument("--weights", type=str, default=None)
         argparser.add_argument("--future", type=int, default=7)
+        argparser.add_argument("--min", action="store_true")
         args = argparser.parse_args()
         return args
-
-    def get_end_date(self):
-        today = datetime.date(
-            datetime.datetime.now().year,
-            datetime.datetime.now().month,
-            datetime.datetime.now().day - 7,
-        )
-        return today
 
     def load_history(self):
         all_train_pred = pd.DataFrame()
@@ -168,6 +161,7 @@ class CryptoForecast:
         future_predictions = []
         last_window = self.X[-1]
 
+        time_increment = pd.Timedelta(minutes=1) if self.args.min else pd.Timedelta(days=1)
         for _ in range(self.future_days + 1):
             next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
             future_predictions.append(next_day_prediction[0])
@@ -176,8 +170,8 @@ class CryptoForecast:
 
         future_predictions = self.scaler.inverse_transform(future_predictions)
         start_date = self.raw_data.index[-1]
-        end_date = start_date + pd.Timedelta(days=self.future_days)
-        date_range = pd.date_range(start=start_date, end=end_date, freq="D")
+        end_date = start_date + time_increment * self.future_days
+        date_range = pd.date_range(start=start_date, end=end_date, freq=time_increment)
         future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
         self.forecast_data = future_predictions
 

@@ -30,9 +30,18 @@ def get_interval(future_days):
 def pred_only_for_plots(cf):
     future_prediction = cf.model.predict(cf.X, verbose=0)
     prediction = cf.scaler.inverse_transform(future_prediction)
-    diff_days = len(prediction) - len(cf.raw_data)
-    end_date = cf.raw_data.index[-1] + pd.Timedelta(days=diff_days)
-    date_range = pd.date_range(start=cf.raw_data.index[0], end=end_date, freq="D")
+
+    start_date = cf.raw_data.index[0]
+    if cf.args.min:
+        total_minutes = len(prediction)
+        date_range = pd.date_range(start=start_date, periods=total_minutes, freq='T')
+    else:
+        end_date = cf.raw_data.index[-1]
+        date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+
+    if len(date_range) != len(prediction):
+        raise ValueError("Mismatch in the length of date range and predictions")
+
     prediction = pd.DataFrame(prediction, index=date_range, columns=["Prediction"])
     return prediction
 
@@ -41,29 +50,32 @@ def plot(cf):
     num_plots = 2
     fig, axs = plt.subplots(num_plots, 2, figsize=(num_plots*10, num_plots*5))
 
+    time_format = "%Y-%m-%d %H:%M" if cf.args.min else "%Y-%m-%d"
+    date_locator_interval = 1 if cf.args.min else get_interval(cf.future_days)
+
     plt.subplot(2, 2, 1)
     plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
     plt.title(f"{cf.ticker} Future Predictions for {cf.future_days} days")
-    plt.xlabel("Days")
+    plt.xlabel("Time")
     plt.ylabel(f"Price in {cf.ticker.split('-')[1]}")
     plt.legend()
     plt.grid(True)
     plt.gca().xaxis_date()
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
-    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=get_interval(cf.future_days)))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter(time_format))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=date_locator_interval))
     plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
 
     plt.subplot(2, 2, 2)
     plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
     plt.plot(cf.data[-cf.future_days:], label="Actual")
     plt.title(f"{cf.ticker} History Data & Future Predictions for {cf.future_days} days")
-    plt.xlabel("Days")
+    plt.xlabel("Time")
     plt.ylabel(f"Price in {cf.ticker.split('-')[1]}")
     plt.legend()
     plt.grid(True)
     plt.gca().xaxis_date()
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
-    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=get_interval(cf.future_days)))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter(time_format))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=date_locator_interval))
     plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
 
     plt.subplot(2, 1, 2)
