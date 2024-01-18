@@ -113,7 +113,7 @@ class CryptoForecast:
         argparser.add_argument("--retrain", action="store_true")
         argparser.add_argument("--path", type=str, default=get_dafault_bw_path())
         argparser.add_argument("--weights", type=str, default=None)
-        argparser.add_argument("--future", type=int, default=30)
+        argparser.add_argument("--future", type=int, default=7)
         args = argparser.parse_args()
         return args
 
