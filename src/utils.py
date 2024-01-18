@@ -117,3 +117,33 @@ def create_cloud_path(cloudpath, ticker, typeof, filetype):
     filepath = os.path.join(path, filename)
 
     return filepath
+
+
+def print_help(cf):
+    print("PadWise-Trading", end="\n\n")
+    print("Usage: python3 main.py [options]", end="\n\n")
+    print("Options:", end="\n\n")
+    
+    for action in cf.argparser._actions:
+        arg_names = ', '.join(action.option_strings)
+        default = action.default
+        help_text = action.help
+        type_str = str(action.type) if action.type is not None else "None"
+
+        if not isinstance(default, (str, list, tuple)):
+            default = str(default)
+        else:
+            default = ', '.join(map(str, default)) if isinstance(default, (list, tuple)) else default
+            
+        arg_line = f"  {arg_names :<20} {help_text}"
+        default_line = f"\t\t\t  Default: {default}"
+        type_line = f"\t\t\t  Type:    {type_str}"
+
+        print(arg_line)
+        
+        if type_str != "None":
+            print(default_line)
+            print(type_line)
+        print()
+
+    exit()

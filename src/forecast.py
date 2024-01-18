@@ -24,7 +24,7 @@ from src.utils import (
 class CryptoForecast:
     def __init__(self):
         self.metric = ""
-        self.args = self.parse_args()
+        self.args, self.argparser = self.parse_args()
         self.end_date = self.get_end_date()
         self.ticker = self.args.coin
         self.weight_path = create_cloud_path(self.args.path, ticker=self.ticker, typeof="weights", filetype="h5")
@@ -105,17 +105,18 @@ class CryptoForecast:
                 self.model.load_weights(files[-1])
 
     def parse_args(self):
-        argparser = argparse.ArgumentParser(description="Cryptocurrency Forecast")
-        argparser.add_argument("--coin", type=str, default="LTC-EUR")
-        argparser.add_argument("--batch_size", type=int, default=1024)
-        argparser.add_argument("--epochs", type=int, default=200)
-        argparser.add_argument("--folds", type=int, default=6)
-        argparser.add_argument("--retrain", action="store_true")
-        argparser.add_argument("--path", type=str, default=get_dafault_bw_path())
-        argparser.add_argument("--weights", type=str, default=None)
-        argparser.add_argument("--future", type=int, default=7)
+        argparser = argparse.ArgumentParser(add_help=False)
+        argparser.add_argument("-h", "--help", action="store_true", help="Show this help message and exit")
+        argparser.add_argument("-c", "--coin", type=str, default="LTC-EUR", help="Coin to predict")
+        argparser.add_argument("-b", "--batch_size", type=int, default=1024, help="Batch size")
+        argparser.add_argument("-e", "--epochs", type=int, default=200, help="Number of epochs")
+        argparser.add_argument("-f", "--folds", type=int, default=6, help="Number of folds")
+        argparser.add_argument("-t", "--retrain", action="store_true", help="(Re-)train the model")
+        argparser.add_argument("-p", "--path", type=str, default=get_dafault_bw_path(), help="Path to save the results")
+        argparser.add_argument("-w", "--weights", type=str, default=None, help="Path to model weight file")
+        argparser.add_argument("-d", "--future", type=int, default=7, help="Number of days to predict")
         args = argparser.parse_args()
-        return args
+        return args, argparser
 
     def get_end_date(self):
         today = datetime.date(

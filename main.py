@@ -5,7 +5,7 @@ import os
 import time
 import warnings
 
-from src.utils import cprint
+from src.utils import cprint, print_help
 from src.forecast import CryptoForecast
 
 warnings.filterwarnings("ignore")
@@ -16,6 +16,8 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 if __name__ == "__main__":
     start_time = time.time()
     cf = CryptoForecast()
+    if cf.args.help:
+        print_help(cf)
     cf.load_history()
     cf.predict_future()
     diff = round(time.time() - start_time, 2)
