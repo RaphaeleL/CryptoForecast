@@ -31,9 +31,6 @@ def plot(cf):
     num_plots = 2
     _, axs = plt.subplots(1, num_plots, figsize=(num_plots * 5, 5))
 
-    # TODO: The Forecast Data Plot should contain the Training Data as well
-    #       not just the Test Data
-    
     axs[0].plot(cf.forecast_data, label="Prediction")
     axs[0].plot(cf.data, label="Actual")
     axs[0].set_title(f"{cf.ticker} Future Predictions for {cf.args.future} Days")
