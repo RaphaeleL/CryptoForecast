@@ -34,6 +34,7 @@ python main.py --coin ETH-USD --retrain
 - `--path`: Location of the `forecast/` and `plots/` folder, aka. the Results of the Prediction (default: '~/bwSyncShare/PadWise-Trading')
 - `--weights`: Location of your Weight File (`weights/*.h5`), that you want to use. The default Location so save those Files is the same like in `--path`.
 - `--future`: How many days do you want to predict the future (default: 30)? 
+- `--min`: Forecast Minutes! The `--future` Flag indicates Minutes instead of Dates now.
 
 ## Model Architecture
 
