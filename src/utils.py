@@ -27,34 +27,53 @@ def get_interval(future_days):
         return 90
 
 
+def pred_only_for_plots(cf):
+    future_prediction = cf.model.predict(cf.X, verbose=0)
+    prediction = cf.scaler.inverse_transform(future_prediction)
+    diff_days = len(prediction) - len(cf.raw_data)
+    end_date = cf.raw_data.index[-1] + pd.Timedelta(days=diff_days)
+    date_range = pd.date_range(start=cf.raw_data.index[0], end=end_date, freq="D")
+    prediction = pd.DataFrame(prediction, index=date_range, columns=["Prediction"])
+    return prediction
+
+
 def plot(cf):
     num_plots = 2
-    _, axs = plt.subplots(1, num_plots, figsize=(num_plots * 5, 5))
-
-    axs[0].plot(cf.forecast_data, label="Prediction")
-    axs[0].plot(cf.data, label="Actual")
-    axs[0].set_title(f"{cf.ticker} Future Predictions for {cf.args.future} Days")
-    axs[0].set_xlabel("Days")
-    axs[0].set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
-    axs[0].legend()
-    axs[0].grid(True)
-    axs[0].xaxis_date()
-    axs[0].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
-    axs[0].xaxis.set_major_locator(mdates.DayLocator(interval=150))
-    plt.setp(axs[0].get_xticklabels(), rotation=45, ha="right")
-
-    axs[1].plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
-    axs[1].plot(cf.data[-cf.future_days:], label="Actual")
-    axs[1].set_title(f"{cf.ticker} Future Predictions for {cf.future_days} days")
-    axs[1].set_xlabel("Days")
-    axs[1].set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
-    axs[1].legend()
-    axs[1].grid(True)
-    axs[1].xaxis_date()
-    axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
-    axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=get_interval(cf.future_days)))
+    _, axs = plt.subplots(num_plots, 1, figsize=(num_plots*10, num_plots*5))
     
-    plt.setp(axs[1].get_xticklabels(), rotation=45, ha="right")
+    ax1 = axs[0]
+    ax2 = axs[1]
+
+    for ax in [ax1, ax2]:
+        ax.xaxis.label.set_visible(False)
+        ax.yaxis.label.set_visible(False)
+
+    ax1.plot(pred_only_for_plots(cf), label="Historical Prediction", color="red")
+    ax1.plot(cf.forecast_data, label="Future Prediction", color="blue")
+    ax1.plot(cf.data, label="Actual", color="green")
+    ax1.set_title(f"{cf.ticker} History with Prediction")
+    ax1.set_xlabel("Days")
+    ax1.set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
+    ax1.legend()
+    ax1.grid(True)
+    ax1.set
+    ax1.xaxis_date()
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
+    ax1.xaxis.set_major_locator(mdates.DayLocator(interval=150))
+    plt.setp(ax1.get_xticklabels(), rotation=45, ha="right")
+
+    ax2.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
+    ax2.plot(cf.data[-cf.future_days:], label="Actual")
+    ax2.set_title(f"{cf.ticker} Future Predictions for {cf.future_days} days")
+    ax2.set_xlabel("Days")
+    ax2.set_ylabel(f"Price in {cf.ticker.split('-')[1]}")
+    ax2.legend()
+    ax2.grid(True)
+    ax2.xaxis_date()
+    ax2.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
+    ax2.xaxis.set_major_locator(mdates.DayLocator(interval=get_interval(cf.future_days)))
+    plt.setp(ax2.get_xticklabels(), rotation=45, ha="right")
+
     plt.tight_layout()
     filepath = create_cloud_path(cf.args.path, ticker=cf.ticker, typeof="plots", filetype="png")
     plt.savefig(filepath)
