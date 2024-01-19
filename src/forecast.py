@@ -25,10 +25,11 @@ class CryptoForecast:
         self.path = path
         self.weights = weights
         self.future_days = future_days
-        
-        self.weight_path = create_cloud_path(self.path, ticker=self.ticker, typeof="weights", filetype="h5")
+
+        self.weight_path = create_cloud_path(
+            self.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        
+
         self.data, self.X, self.Y, self.raw_data = None, None, None, None
         self.forecast_data = None
 
@@ -37,7 +38,8 @@ class CryptoForecast:
         self.build_model()
 
     def get_data(self, period="max", interval="1d"):
-        self.raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
+        self.raw_data = yf.download(
+            self.ticker, period=period, interval=interval, progress=False)
         self.data = self.raw_data[["Close"]]
         self.data.reset_index(inplace=True)
         self.data.set_index("Date", inplace=True)
@@ -46,7 +48,7 @@ class CryptoForecast:
         data = self.scaler.fit_transform(self.data)
         dataX, dataY = [], []
         for i in range(len(data) - 1):
-            a = data[i : i + 1, 0]
+            a = data[i: i + 1, 0]
             dataX.append(a)
             dataY.append(data[i + 1, 0])
         self.X, self.y = np.array(dataX).reshape(-1, 1, 1), np.array(dataY)
@@ -85,14 +87,15 @@ class CryptoForecast:
             verbose=0,
             callbacks=callbacks,
         )
-        
+
     def load_weights(self):
         if self.weights is not None:
             if os.path.isfile(self.weights):
                 print(f"Used model weights from '{self.weights}'")
                 self.model.load_weights(self.weights)
         else:
-            path = os.path.join(get_dafault_bw_path(), "weights", self.ticker, "*.h5")
+            path = os.path.join(get_dafault_bw_path(),
+                                "weights", self.ticker, "*.h5")
             files = glob.glob(path)
             if os.path.isfile(files[-1]):
                 print(f"Used model weights from '{files[-1]}'")
@@ -108,9 +111,7 @@ class CryptoForecast:
             self.load_weights()
 
         def train_fold(train_index, test_index):
-            X_train, X_test, y_train, y_test = self.split(
-                self.X, self.y, train_index, test_index
-            )
+            X_train, X_test, y_train, y_test = self.split(self.X, self.y, train_index, test_index)
             if self.retrain:
                 self.train(X_train, y_train)
             pred = self.scaler.inverse_transform(self.model.predict(X_test, verbose=0))
@@ -142,7 +143,8 @@ class CryptoForecast:
         last_window = self.X[-1]
 
         for _ in range(self.future_days + 1):
-            next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
+            next_day_prediction = self.model.predict(
+                np.array([last_window]), verbose=0)
             future_predictions.append(next_day_prediction[0])
             last_window = np.roll(last_window, -1)
             last_window[-1] = next_day_prediction
@@ -151,7 +153,8 @@ class CryptoForecast:
         start_date = self.raw_data.index[-1]
         end_date = start_date + pd.Timedelta(days=self.future_days)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
-        future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
+        future_predictions = pd.DataFrame(
+            future_predictions, index=date_range, columns=["Prediction"])
         self.forecast_data = future_predictions
 
         self.save_prediction()
@@ -164,5 +167,6 @@ class CryptoForecast:
         plot(self)
 
     def save_prediction(self):
-        filepath = create_cloud_path(self.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
+        filepath = create_cloud_path(
+            self.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
         self.forecast_data.to_csv(filepath, index=True)

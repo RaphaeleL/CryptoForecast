@@ -4,7 +4,7 @@ import tensorflow as tf
 import os
 import warnings
 
-from src.utils import cprint, print_help, parse_args
+from src.utils import print_help, parse_args
 from src.forecast import CryptoForecast
 
 warnings.filterwarnings("ignore")
@@ -14,7 +14,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 if __name__ == "__main__":
     args, argparser = parse_args()
-    
+
     cf = CryptoForecast(
         epochs=args.epochs,
         batch_size=args.batch_size,
