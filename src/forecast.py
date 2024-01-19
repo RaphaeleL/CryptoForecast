@@ -29,9 +29,13 @@ class CryptoForecast:
         self.weight_path = create_cloud_path(self.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         
-        self.data, self.X, self.Y, self.raw_data = None, None, None, None
+        self.data = None
+        self.X = None
+        self.Y = None
+        self.raw_data = None
         self.forecast_data = None
 
+    def prepare(self):
         self.get_data()
         self.create_x_y_split()
         self.build_model()
