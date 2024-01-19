@@ -29,6 +29,7 @@ if __name__ == "__main__":
     if args.help:
         print_help(cf)
 
+    cf.prepare()
     cf.load_history()
     cf.predict_future()
     cf.visualize()

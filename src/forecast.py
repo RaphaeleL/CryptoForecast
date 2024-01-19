@@ -26,13 +26,15 @@ class CryptoForecast:
         self.weights = weights
         self.future_days = future_days
 
-        self.weight_path = create_cloud_path(
-            self.path, ticker=self.ticker, typeof="weights", filetype="h5")
+        self.weight_path = create_cloud_path(self.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-
-        self.data, self.X, self.Y, self.raw_data = None, None, None, None
+        self.data = None
+        self.X = None
+        self.Y = None
+        self.raw_data = None
         self.forecast_data = None
 
+    def prepare(self):
         self.get_data()
         self.create_x_y_split()
         self.build_model()
@@ -162,7 +164,7 @@ class CryptoForecast:
     def visualize(self):
         for i, (index, value) in enumerate(self.forecast_data.iterrows()):
             print(f"Predicted Price for {index.strftime('%d. %b %Y')}: ", end="")
-            print(f"{round(value[0], 2)} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
+            print(f"{round(value[0], 1)} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
             print(f"({'Today' if i == 0 else 'Day ' + str(i) + ''})")
         plot(self)
 
