@@ -40,8 +40,7 @@ class CryptoForecast:
         self.build_model()
 
     def get_data(self, period="max", interval="1d"):
-        self.raw_data = yf.download(
-            self.ticker, period=period, interval=interval, progress=False)
+        self.raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
         self.data = self.raw_data[["Close"]]
         self.data.reset_index(inplace=True)
         self.data.set_index("Date", inplace=True)
