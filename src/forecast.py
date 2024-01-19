@@ -95,8 +95,7 @@ class CryptoForecast:
                 print(f"Used model weights from '{self.weights}'")
                 self.model.load_weights(self.weights)
         else:
-            path = os.path.join(get_dafault_bw_path(),
-                                "weights", self.ticker, "*.h5")
+            path = os.path.join(get_dafault_bw_path(), "weights", self.ticker, "*.h5")
             files = glob.glob(path)
             if os.path.isfile(files[-1]):
                 print(f"Used model weights from '{files[-1]}'")
