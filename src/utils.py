@@ -20,7 +20,9 @@ colors = {
 def get_interval(future_days):
     if future_days <= 7:
         return 1
-    elif future_days <= 30:
+    elif future_days <= 14:
+        return 2
+    elif future_days <= 60:
         return 7
     elif future_days <= 90:
         return 30
@@ -45,8 +47,8 @@ def plot(cf):
     plt.subplots(num_plots, 2, figsize=(num_plots*10, num_plots*5))
 
     plt.subplot(2, 2, 1)
-    plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
-    plt.title(f"{cf.ticker} Future Predictions for {cf.future_days} days")
+    plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction", color="blue")
+    plt.title(f"Prediction ({cf.ticker}, {int(cf.future_days/2)} days Future and Past)")
     plt.ylabel(f"Price in {cf.ticker.split('-')[1] if '-' in cf.ticker else ''}")
     plt.legend()
     plt.grid(True)
@@ -56,10 +58,9 @@ def plot(cf):
     plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
 
     plt.subplot(2, 2, 2)
-    plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
-    plt.plot(cf.data[-cf.future_days:], label="Actual")
-    plt.plot(cf.cut_out_data, label="Cut Out")
-    plt.title(f"{cf.ticker} History Data & Future Predictions for {cf.future_days} days")
+    plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction", color="blue")
+    plt.plot(cf.raw_data[-cf.future_days:], label="Real Data", color="green")
+    plt.title("Validation")
     plt.ylabel(f"Price in {cf.ticker.split('-')[1] if '-' in cf.ticker else ''}")
     plt.legend()
     plt.grid(True)
@@ -69,10 +70,10 @@ def plot(cf):
     plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right")
 
     plt.subplot(2, 1, 2)
-    plt.plot(pred_only_for_plots(cf), label="Historical Prediction", color="red")
-    plt.plot(cf.forecast_data, label="Future Prediction", color="blue")
-    plt.plot(cf.data, label="Actual", color="green")
-    plt.title(f"{cf.ticker} History with Prediction")
+    plt.plot(pred_only_for_plots(cf), label="Training", color="red")
+    plt.plot(cf.forecast_data, label="Prediction", color="blue")
+    plt.plot(cf.raw_data, label="Real Data", color="green")
+    plt.title("Training")
     plt.ylabel(f"Price in {cf.ticker.split('-')[1] if '-' in cf.ticker else ''}")
     plt.legend()
     plt.grid(True)

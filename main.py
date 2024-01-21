@@ -23,7 +23,7 @@ if __name__ == "__main__":
         retrain=args.retrain,
         path=args.path,
         weights=args.weights,
-        future_days=args.future,
+        future_days=args.future
     )
 
     if args.help:
