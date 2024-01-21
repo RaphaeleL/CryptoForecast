@@ -34,6 +34,8 @@ class CryptoForecast:
         self.raw_data = None
         self.forecast_data = None
 
+        self.cut_out_data = None
+
     def prepare(self):
         self.get_data()
         self.create_x_y_split()
@@ -44,6 +46,8 @@ class CryptoForecast:
         self.data = self.raw_data[["Close"]]
         self.data.reset_index(inplace=True)
         self.data.set_index("Date", inplace=True)
+        self.cut_out_data = self.data[-self.future_days:]
+        self.data = self.data[:-self.future_days + 1]
 
     def create_x_y_split(self):
         data = self.scaler.fit_transform(self.data)
@@ -150,7 +154,7 @@ class CryptoForecast:
             last_window[-1] = next_day_prediction
 
         future_predictions = self.scaler.inverse_transform(future_predictions)
-        start_date = self.raw_data.index[-1]
+        start_date = self.cut_out_data.index[0]
         end_date = start_date + pd.Timedelta(days=self.future_days)
         date_range = pd.date_range(start=start_date, end=end_date, freq="D")
         future_predictions = pd.DataFrame(

@@ -58,6 +58,7 @@ def plot(cf):
     plt.subplot(2, 2, 2)
     plt.plot(cf.forecast_data[-cf.future_days*20:], label="Prediction")
     plt.plot(cf.data[-cf.future_days:], label="Actual")
+    plt.plot(cf.cut_out_data, label="Cut Out")
     plt.title(f"{cf.ticker} History Data & Future Predictions for {cf.future_days} days")
     plt.ylabel(f"Price in {cf.ticker.split('-')[1] if '-' in cf.ticker else ''}")
     plt.legend()
