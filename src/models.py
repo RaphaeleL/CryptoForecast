@@ -28,6 +28,7 @@ def bitcoin(cf):
         Dropout(0.3),
 
         Flatten(),
+
         Dense(128, activation="relu", kernel_regularizer=l2(0.001)),
         BatchNormalization(),
         Dropout(0.4),
@@ -47,13 +48,16 @@ def litecoin(cf):
 def default_model(cf):
     return [
         Conv1D(64, 1, activation="relu", input_shape=(1, cf.X.shape[2])),
+
         Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
         Dropout(0.2),
         Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
         Dropout(0.2),
         Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
         Dropout(0.2),
+
         Flatten(),
+        
         Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
         Dense(1),
     ]
