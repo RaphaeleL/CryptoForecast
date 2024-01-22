@@ -29,7 +29,7 @@ if __name__ == "__main__":
     )
 
     if args.help:
-        print_help(cf)
+        print_help(argparser)
 
     cf.preprocess()
     cf.load_history()

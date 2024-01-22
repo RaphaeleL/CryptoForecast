@@ -124,12 +124,12 @@ def create_cloud_path(cloudpath, ticker, typeof, filetype):
     return filepath
 
 
-def print_help(cf):
+def print_help(argparser):
     print("PadWise-Trading", end="\n\n")
     print("Usage: python3 main.py [options]", end="\n\n")
     print("Options:", end="\n\n")
 
-    for action in cf.argparser._actions:
+    for action in argparser._actions:
         arg_names = ', '.join(action.option_strings)
         default = action.default
         help_text = action.help
