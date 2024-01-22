@@ -2,6 +2,7 @@
 
 import tensorflow as tf
 import os
+import time
 import warnings
 
 from src.utils import print_help, parse_args
@@ -13,6 +14,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     args, argparser = parse_args()
 
     cf = CryptoForecast(
@@ -32,5 +34,6 @@ if __name__ == "__main__":
     cf.preprocess()
     cf.load_history()
     cf.predict_future()
+    print(f"Finished in {time.time() - start_time:.2f} seconds")
     cf.postprocess()
     cf.visualize()
