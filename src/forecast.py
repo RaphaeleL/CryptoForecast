@@ -37,10 +37,15 @@ class CryptoForecast:
         self.losses = []
         self.predict_count = 0
 
-    def prepare(self):
+    def preprocess(self):
         self.get_data()
         self.create_x_y_split()
         self.build_model()
+
+    def postprocess(self):
+        self.forecast_data["Prediction"] = self.forecast_data["Prediction"].apply(lambda x: "{:.2f}".format(x))
+        self.forecast_data["Prediction"] = self.forecast_data["Prediction"].astype(float)
+        self.forecast_data = self.forecast_data[["Prediction"]]
 
     def get_data(self, period="max", interval="1d"):
         self.raw_data = yf.download(self.ticker, period=period, interval=interval, progress=False)
@@ -74,12 +79,11 @@ class CryptoForecast:
         return X_train, y_train
 
     def build_model(self):
-        if "BTC" in self.ticker: model = bitcoin(self)
-        elif "ETH" in self.ticker: model = ethereum(self)
-        elif "LTC" in self.ticker: model = litecoin(self)
-        else: model = default_model(self)
+        if "BTC" in self.ticker: self.model = bitcoin(self)
+        elif "ETH" in self.ticker: self.model = ethereum(self)
+        elif "LTC" in self.ticker: self.model = litecoin(self)
+        else: self.model = default_model(self)
 
-        self.model = Sequential(model)
         self.model.compile(optimizer=Adam(0.001), loss="mse")
 
     def train(self, X_train, y_train):
@@ -209,8 +213,8 @@ class CryptoForecast:
     def visualize(self):
         for i, (index, value) in enumerate(self.forecast_data.iterrows()):
             print(f"Predicted Price for {index.strftime('%d. %b %Y')}: ", end="")
-            print(f"{round(value[0], 1)} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
-            print(f"({'Today' if i == 0 else 'Day ' + str(i) + ''})")
+            print(f"{value[0]} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
+            print(f"Day: {str(i+1)}")
         plot(self)
 
     def save_prediction(self):

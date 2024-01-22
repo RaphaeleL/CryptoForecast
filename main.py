@@ -29,7 +29,8 @@ if __name__ == "__main__":
     if args.help:
         print_help(cf)
 
-    cf.prepare()
+    cf.preprocess()
     cf.load_history()
     cf.predict_future()
+    cf.postprocess()
     cf.visualize()
