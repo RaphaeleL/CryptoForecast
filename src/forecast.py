@@ -76,7 +76,7 @@ class CryptoForecast:
     def build_model(self):
         if "BTC" in self.ticker: model = bitcoin(self)
         elif "ETH" in self.ticker: model = ethereum(self)
-        elif "LTC" in self.ticker: model = litcoin(self)
+        elif "LTC" in self.ticker: model = litecoin(self)
         else: model = default_model(self)
 
         self.model = Sequential(model)

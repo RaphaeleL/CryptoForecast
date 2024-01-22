@@ -1,6 +1,3 @@
-
-        
-from keras.models import Sequential
 from keras.layers import Conv1D, MaxPooling1D, Bidirectional, LSTM
 from keras.layers import Flatten, Dropout, Dense, BatchNormalization
 from keras.regularizers import l2
