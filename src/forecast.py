@@ -147,47 +147,6 @@ class CryptoForecast:
 
         return all_train_pred, all_actuals_df
 
-    # def predict_future(self):
-    #     future_predictions = []
-    #     last_window = self.X[-1]
-    #     self.future_days = self.future_days * 2
-
-    #     for _ in range(self.future_days + 1):
-    #         next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
-    #         future_predictions.append(next_day_prediction[0])
-    #         last_window = np.roll(last_window, -1)
-    #         last_window[-1] = next_day_prediction
-
-    #     future_predictions = self.scaler.inverse_transform(future_predictions)
-    #     start_date = self.cut_out_data.index[0]
-    #     end_date = start_date + pd.Timedelta(days=self.future_days)
-    #     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
-    #     future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
-    #     self.forecast_data = future_predictions
-
-    #     self.save_prediction()
-
-    # def predict_future(self):
-    #     future_predictions = []
-    #     last_window = self.X[-1]
-    #     self.future_days = (self.future_days * 2) * 24
-
-    #     for i in range(self.future_days + 1):
-    #         next_day_prediction = self.model.predict(np.array([last_window]), verbose=0)
-    #         future_predictions.append(next_day_prediction[0])
-    #         last_window = np.roll(last_window, -1)
-    #         last_window[-1] = next_day_prediction
-
-    #     future_predictions = self.scaler.inverse_transform(future_predictions)
-    #     start_date = self.cut_out_data.index[0]
-    #     end_date = start_date + pd.Timedelta(hours=self.future_days)
-    #     date_range = pd.date_range(start=start_date, end=end_date, freq="H")
-    #     future_predictions = pd.DataFrame(future_predictions, index=date_range, columns=["Prediction"])
-    #     self.forecast_data = future_predictions
-
-    #     self.save_prediction()
-
-
     def predict_future(self):
         input_window_size = self.future_days
         self.X = self.X.values if isinstance(self.X, pd.DataFrame) else self.X
