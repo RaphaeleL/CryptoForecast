@@ -189,23 +189,15 @@ class CryptoForecast:
 
 
     def predict_future(self):
-
-        def prepare_future_input():
-            input_window_size = self.future_days
-            if isinstance(self.X, pd.DataFrame):
-                self.X = self.X.values
-            if len(self.X) < input_window_size:
-                raise ValueError("Not enough data to prepare future input.")
-            future_input = self.X[-input_window_size:]
-            return future_input
-
-        pred_h = self.future_days
-
-        future_input = prepare_future_input()
+        input_window_size = self.future_days
+        self.X = self.X.values if isinstance(self.X, pd.DataFrame) else self.X
+        # if len(self.X) < input_window_size:
+        #     raise ValueError("Not enough data to prepare future input.")
+        future_input = self.X[-input_window_size:]
         future_prediction = self.model.predict(future_input, verbose=0)
         prediction = self.scaler.inverse_transform(future_prediction)
         next_day = self.data.index[-2] + pd.Timedelta(days=1)
-        future_dates = pd.date_range(start=next_day, periods=pred_h, freq="D")
+        future_dates = pd.date_range(start=next_day, periods=input_window_size, freq="D")
         res = pd.DataFrame(prediction, index=future_dates, columns=["Prediction"])
         self.forecast_data = res
         self.save_prediction()
