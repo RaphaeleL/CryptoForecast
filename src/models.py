@@ -4,6 +4,7 @@ from keras.layers import Flatten, Dropout, Dense, BatchNormalization
 from keras.regularizers import l2
 from keras.layers import Normalization
 
+
 def bitcoin(cf):
     return Sequential([
         Normalization(input_shape=(1, cf.X.shape[2])),
