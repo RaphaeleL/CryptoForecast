@@ -9,10 +9,10 @@ def bitcoin(cf):
     return Sequential([
         Normalization(input_shape=(1, cf.X.shape[2])),
                 
-        Conv1D(64, kernel_size=3, activation="relu", padding='same'),
+        Conv1D(64, 3, activation="relu", padding="same"),
         MaxPooling1D(1),
         BatchNormalization(),
-        Conv1D(128, kernel_size=3, activation="relu", padding='same'),
+        Conv1D(128, 3, activation="relu", padding="same"),
         MaxPooling1D(1),
         BatchNormalization(),
 
