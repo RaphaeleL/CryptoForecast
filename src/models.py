@@ -36,13 +36,6 @@ def bitcoin(cf):
         Dense(1)
     ])
 
-def ethereum(cf):
-    # TODO: implement
-    return bitcoin(cf)
-
-def litecoin(cf):
-    # TODO: implement
-    return bitcoin(cf)
 
 def default_model(cf):
     return Sequential([
