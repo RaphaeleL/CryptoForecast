@@ -155,14 +155,24 @@ def print_help(argparser):
     exit()
 
 
+def get_allowed_coins():
+    # NOTE: This are all the coins that we allow to predict, if you want to 
+    #       allow more coins, just add them here
+    return ["BTC-EUR", "LTC-EUR", "ETH-EUR"]
+
+
+def get_default_coin():
+    return "BTC-EUR"
+
+
 def parse_args():
     argparser = argparse.ArgumentParser(add_help=False)
     argparser.add_argument("-h", "--help", action="store_true", help="Show this help message and exit")
-    argparser.add_argument("-c", "--coin", type=str, default="LTC-EUR", help="Coin to predict")
+    argparser.add_argument("-c", "--coin", type=str, default=get_default_coin(), help="Coin to predict", choices=get_allowed_coins())
     argparser.add_argument("-b", "--batch_size", type=int, default=1024, help="Batch size")
     argparser.add_argument("-e", "--epochs", type=int, default=200, help="Number of epochs")
     argparser.add_argument("-f", "--folds", type=int, default=6, help="Number of folds")
-    argparser.add_argument( "-t", "--retrain", action="store_true", help="(Re-)train the model")
+    argparser.add_argument("-t", "--retrain", action="store_true", help="(Re-)train the model")
     argparser.add_argument("-p", "--path", type=str, default=get_dafault_bw_path(), help="Path to save the results")
     argparser.add_argument("-w", "--weights", type=str, default=None, help="Path to model weight file")
     argparser.add_argument("-d", "--future", type=int, default=7, help="Number of days to predict")
