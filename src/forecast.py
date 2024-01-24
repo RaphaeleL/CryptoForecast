@@ -5,7 +5,6 @@ import pandas as pd
 import yfinance as yf
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import MinMaxScaler
-from keras import Sequential
 from keras.optimizers.legacy import Adam
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
