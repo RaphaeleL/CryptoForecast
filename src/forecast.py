@@ -9,8 +9,8 @@ from keras.optimizers.legacy import Adam
 from tqdm.keras import TqdmCallback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from src.utils import plot, create_cloud_path
-from src.models import bitcoin, ethereum, litecoin, default_model
+from src.utils import plot, create_cloud_path, get_allowed_coins, get_default_coin
+from src.models import bitcoin, default_model
 
 
 class CryptoForecast:
@@ -78,11 +78,12 @@ class CryptoForecast:
         return X_train, y_train
 
     def build_model(self):
-        if "BTC" in self.ticker: self.model = bitcoin(self)
-        elif "ETH" in self.ticker: self.model = ethereum(self)
-        elif "LTC" in self.ticker: self.model = litecoin(self)
-        else: self.model = default_model(self)
-
+        self.model = default_model(self)
+        if any(ticker in self.ticker for ticker in get_allowed_coins()):
+            # NOTE: All allowed coins are using the bitcoin model, because it 
+            #       is the best one. It may be better to implement a model for 
+            #       each coin. 
+            self.model = bitcoin(self)
         self.model.compile(optimizer=Adam(0.001), loss="mse")
 
     def train(self, X_train, y_train):
@@ -105,6 +106,11 @@ class CryptoForecast:
         else:
             path = os.path.join(self.path, "weights", self.ticker, "*.h5")
             files = glob.glob(path)
+            if len(files) == 0:
+                print(f"No weights found in '{path.replace('*.h5', '')}', trying to load default weights from {get_default_coin()}.")
+                path = os.path.join(self.path, "weights", get_default_coin(), "*.h5")
+                files = glob.glob(path)
+            assert len(files) > 0, f"No weights found in '{path.replace('*.h5', '')}', please train your ticker ({self.ticker}) under your choosen path."
             if os.path.isfile(files[-1]):
                 print(f"Used model weights from '{files[-1]}'")
                 self.model.load_weights(files[-1])
