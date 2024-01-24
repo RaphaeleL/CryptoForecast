@@ -104,6 +104,8 @@ class CryptoForecast:
                 print(f"Used model weights from '{self.weights}'")
                 self.model.load_weights(self.weights)
         else:
+            assert self.ticker is not None, "No ticker specified."
+            assert self.ticker in get_allowed_coins(), f"Ticker '{self.ticker}' is not allowed."
             path = os.path.join(self.path, "weights", self.ticker, "*.h5")
             files = glob.glob(path)
             if len(files) == 0:

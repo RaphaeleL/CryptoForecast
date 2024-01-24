@@ -93,7 +93,10 @@ def get_colored_text(to_print, color):
 
 
 def get_top_50_tickers():
-    return list(pd.read_csv("data/top_50_names.csv")["Name"])
+    result = []
+    for coin in list(pd.read_csv("data/top_50_names.csv")["Name"]):
+        result.append(f"{coin}-EUR")
+    return result
 
 
 def get_weight_file_tickers():
@@ -155,10 +158,8 @@ def print_help(argparser):
     exit()
 
 
-def get_allowed_coins():
-    # NOTE: This are all the coins that we allow to predict, if you want to 
-    #       allow more coins, just add them here
-    return ["BTC-EUR", "LTC-EUR", "ETH-EUR"]
+def get_allowed_coins(all=False):
+    return get_top_50_tickers() if all else ["BTC-EUR", "LTC-EUR", "ETH-EUR"]
 
 
 def get_default_coin():
