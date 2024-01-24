@@ -159,7 +159,7 @@ def print_help(argparser):
 
 
 def get_allowed_coins(all=False):
-    return get_top_50_tickers() if all else ["BTC-EUR", "LTC-EUR", "ETH-EUR"]
+    return get_top_50_tickers() if all else ["BTC-EUR", "LTC-EUR", "ETH-EUR", "ADA-EUR", "SOL-EUR"]
 
 
 def get_default_coin():
