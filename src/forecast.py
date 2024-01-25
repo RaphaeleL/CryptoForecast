@@ -80,9 +80,6 @@ class CryptoForecast:
     def build_model(self):
         self.model = default_model(self)
         if any(ticker in self.ticker for ticker in get_allowed_coins()):
-            # NOTE: All allowed coins are using the bitcoin model, because it
-            #       is the best one. It may be better to implement a model for
-            #       each coin. 
             self.model = bitcoin(self)
         self.model.compile(optimizer=Adam(0.001), loss="mse")
 
