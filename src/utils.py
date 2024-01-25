@@ -176,6 +176,6 @@ def parse_args():
     argparser.add_argument("-t", "--retrain", action="store_true", help="(Re-)train the model")
     argparser.add_argument("-p", "--path", type=str, default=get_dafault_bw_path(), help="Path to save the results")
     argparser.add_argument("-w", "--weights", type=str, default=None, help="Path to model weight file")
-    argparser.add_argument("-d", "--future", type=int, default=7, help="Number of days to predict")
+    argparser.add_argument("-d", "--future", type=int, default=4, help="Number of days to predict")
     args = argparser.parse_args()
     return args, argparser
