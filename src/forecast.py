@@ -106,6 +106,7 @@ class CryptoForecast:
             path = os.path.join(self.path, "weights", self.ticker, "*.h5")
             files = glob.glob(path)
             if len(files) == 0:
+                os.rmdir(os.path.join(self.path, "weights", self.ticker))
                 print(f"No weights found in '{path.replace('*.h5', '')}', trying to load default weights from {get_default_coin()}.")
                 path = os.path.join(self.path, "weights", get_default_coin(), "*.h5")
                 files = glob.glob(path)
