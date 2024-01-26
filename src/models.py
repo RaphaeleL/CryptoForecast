@@ -8,7 +8,7 @@ from keras.layers import Normalization
 def bitcoin(cf):
     return Sequential([
         Normalization(input_shape=(1, cf.X.shape[2])),
-                
+
         Conv1D(64, 3, activation="relu", padding="same"),
         MaxPooling1D(1),
         BatchNormalization(),
@@ -49,7 +49,7 @@ def default_model(cf):
         Dropout(0.2),
 
         Flatten(),
-        
+
         Dense(50, activation="relu", kernel_regularizer=l2(0.001)),
         Dense(1),
     ])
