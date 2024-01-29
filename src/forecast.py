@@ -121,9 +121,6 @@ class CryptoForecast:
 
         tss = TimeSeriesSplit(n_splits=self.folds)
 
-        if not self.retrain:
-            self.load_weights()
-
         def train_fold(train_index, test_index):
             X_train, X_test, y_train, y_test = self.split(self.X, self.y, train_index, test_index)
             if self.retrain:
@@ -149,6 +146,8 @@ class CryptoForecast:
         if self.retrain:
             self.model.save_weights(self.weight_path)
             print(f"Saved model weights to '{self.weight_path}'")
+        else: 
+            self.load_weights()
 
         return all_train_pred, all_actuals_df
 

@@ -6,14 +6,17 @@ from keras.layers import Normalization
 
 
 def bitcoin(cf):
+    """
+    This Model is working fine for BTC-EUR, LTC-EUR.
+    """
     return Sequential([
-        Normalization(input_shape=(1, cf.X.shape[2])),
+        # Normalization(input_shape=(1, cf.X.shape[2])),
 
         Conv1D(64, 3, activation="relu", padding="same"),
-        MaxPooling1D(1),
+        # MaxPooling1D(1),
         BatchNormalization(),
         Conv1D(128, 3, activation="relu", padding="same"),
-        MaxPooling1D(1),
+        # MaxPooling1D(1),
         BatchNormalization(),
 
         Bidirectional(LSTM(100, activation="relu", return_sequences=True)),
@@ -30,9 +33,9 @@ def bitcoin(cf):
 
         Dense(128, activation="relu", kernel_regularizer=l2(0.001)),
         BatchNormalization(),
-        Dropout(0.4),
+        Dropout(0.3),
         Dense(64, activation="relu", kernel_regularizer=l2(0.001)),
-        Dropout(0.4),
+        Dropout(0.3),
         Dense(1)
     ])
 
