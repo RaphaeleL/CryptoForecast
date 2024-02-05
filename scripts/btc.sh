@@ -2,4 +2,4 @@
 
 set -xe
 
-python3 main.py -c BTC-EUR -v -s
+python3 main.py -c BTC-EUR -v -s --debug

@@ -80,7 +80,13 @@ def plot(cf):
 
     plt.tight_layout()
     if cf.save:
-        filepath = create_cloud_path(cf.path, ticker=cf.ticker, typeof="plots", filetype="png")
+        filepath = create_cloud_path(
+            cf.path, 
+            ticker=cf.ticker, 
+            typeof="plots", 
+            filetype="png", 
+            days=cf.future_days
+        )
         plt.savefig(filepath)
     if cf.show:
         plt.show()
@@ -113,13 +119,14 @@ def get_dafault_bw_path():
     return os.path.join(os.path.expanduser('~'), "bwSyncShare", "PadWise-Trading")
 
 
-def create_cloud_path(cloudpath, ticker, typeof, filetype):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+def create_cloud_path(cloudpath, ticker, typeof, filetype, days=None):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d")
 
     path = os.path.join(
         cloudpath,
         typeof,
-        ticker
+        ticker,
+        str(round(days/2)) if days is not None else ""
     )
     filename = f"{timestamp}.{filetype}"
 
@@ -181,5 +188,6 @@ def parse_args():
     argparser.add_argument("-d", "--future", type=int, default=4, help="Number of days to predict")
     argparser.add_argument("-v", "--visualize", action="store_true", help="Plot the Prediction")
     argparser.add_argument("-s", "--save", action="store_true", help="Save the Plot")
+    argparser.add_argument("-g", "--debug", action="store_true", help="Save the Plot")
     args = argparser.parse_args()
     return args, argparser

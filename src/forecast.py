@@ -14,7 +14,7 @@ from src.models import bitcoin, default_model
 
 
 class CryptoForecast:
-    def __init__(self, epochs, batch_size, ticker, folds, retrain, path, weights, future_days, save, show):
+    def __init__(self, epochs, batch_size, ticker, folds, retrain, path, weights, future_days, save, show, debug):
         self.epochs = epochs
         self.batch_size = batch_size
         self.ticker = ticker
@@ -25,6 +25,7 @@ class CryptoForecast:
         self.future_days = future_days
         self.save = save
         self.show = show
+        self.debug = debug
 
         self.weight_path = create_cloud_path(self.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.scaler = MinMaxScaler(feature_range=(0, 1))
@@ -100,7 +101,7 @@ class CryptoForecast:
     def load_weights(self):
         if self.weights is not None:
             if os.path.isfile(self.weights):
-                print(f"Used model weights from '{self.weights}'")
+                if self.debug: print(f"Used model weights from '{self.weights}'")
                 self.model.load_weights(self.weights)
         else:
             assert self.ticker is not None, "No ticker specified."
@@ -109,12 +110,12 @@ class CryptoForecast:
             files = glob.glob(path)
             if len(files) == 0:
                 os.rmdir(os.path.join(self.path, "weights", self.ticker))
-                print(f"No weights found in '{path.replace('*.h5', '')}', trying to load default weights from {get_default_coin()}.")
+                if self.debug: print(f"No weights found in '{path.replace('*.h5', '')}', trying to load default weights from {get_default_coin()}.")
                 path = os.path.join(self.path, "weights", get_default_coin(), "*.h5")
                 files = glob.glob(path)
             assert len(files) > 0, f"No weights found in '{path.replace('*.h5', '')}', please train your ticker ({self.ticker}) under your choosen path."
             if os.path.isfile(files[-1]):
-                print(f"Used model weights from '{files[-1]}'")
+                if self.debug: print(f"Used model weights from '{files[-1]}'")
                 self.model.load_weights(files[-1])
 
     def load_history(self):
@@ -147,7 +148,7 @@ class CryptoForecast:
 
         if self.retrain:
             self.model.save_weights(self.weight_path)
-            print(f"Saved model weights to '{self.weight_path}'")
+            if self.debug: print(f"Saved model weights to '{self.weight_path}'")
         else: 
             self.load_weights()
 
@@ -167,11 +168,17 @@ class CryptoForecast:
 
     def visualize(self):
         for i, (index, value) in enumerate(self.forecast_data.iterrows()):
-            print(f"Predicted Price for {index.strftime('%d. %b %Y')}: ", end="")
-            print(f"{value[0]} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
-            print(f"Day: {str(i+1)}")
+            if self.debug: print(f"Predicted Price for {index.strftime('%d. %b %Y')}: ", end="")
+            if self.debug: print(f"{value[0]} {self.ticker.split('-')[1] if '-' in self.ticker else ''} ", end="")
+            if self.debug: print(f"Day: {str(i+1)}")
         plot(self)
 
     def save_prediction(self):
-        filepath = create_cloud_path(self.path, ticker=self.ticker, typeof="forecasts", filetype="csv")
+        filepath = create_cloud_path(
+            self.path, 
+            ticker=self.ticker, 
+            typeof="forecasts", 
+            filetype="csv", 
+            days=self.future_days
+        )
         self.forecast_data.to_csv(filepath, index=True, sep=";")

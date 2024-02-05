@@ -36,6 +36,7 @@ python main.py --coin ETH-USD --retrain
 - `--future`: How many days do you want to predict the future (default: 30)? 
 - `--save`: Save The Plot (default: off).
 - `--visualize`: Plot the Prediction (default: off).
+- `--debug`: Print or do not Print (default: off).
 
 ## Model Architecture
 

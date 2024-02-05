@@ -2,4 +2,4 @@
 
 set -xe
 
-python3 main.py -c LTC-EUR -v -s
+python3 main.py -c LTC-EUR -v -s --debug

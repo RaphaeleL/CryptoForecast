@@ -27,7 +27,8 @@ if __name__ == "__main__":
         weights=args.weights,
         future_days=args.future,
         save=args.save,
-        show=args.visualize
+        show=args.visualize,
+        debug=args.debug
     )
 
     if args.help:
@@ -36,6 +37,6 @@ if __name__ == "__main__":
     cf.preprocess()
     cf.load_history()
     cf.predict_future()
-    print(f"Finished in {time.time() - start_time:.2f} seconds")
+    if cf.debug: print(f"Finished in {time.time() - start_time:.2f} seconds")
     cf.postprocess()
     cf.visualize()

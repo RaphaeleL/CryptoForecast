@@ -2,4 +2,4 @@
 
 set -xe
 
-python3 main.py -c ETH-EUR -v -s
+python3 main.py -c ETH-EUR -v -s --debug
