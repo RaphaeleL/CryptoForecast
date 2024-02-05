@@ -79,9 +79,11 @@ def plot(cf):
     plt.grid(True)
 
     plt.tight_layout()
-    filepath = create_cloud_path(cf.path, ticker=cf.ticker, typeof="plots", filetype="png")
-    plt.savefig(filepath)
-    plt.show()
+    if cf.save:
+        filepath = create_cloud_path(cf.path, ticker=cf.ticker, typeof="plots", filetype="png")
+        plt.savefig(filepath)
+    if cf.show:
+        plt.show()
 
 
 def cprint(to_print, color, end="\n"):
@@ -177,5 +179,7 @@ def parse_args():
     argparser.add_argument("-p", "--path", type=str, default=get_dafault_bw_path(), help="Path to save the results")
     argparser.add_argument("-w", "--weights", type=str, default=None, help="Path to model weight file")
     argparser.add_argument("-d", "--future", type=int, default=4, help="Number of days to predict")
+    argparser.add_argument("-v", "--visualize", action="store_true", help="Plot the Prediction")
+    argparser.add_argument("-s", "--save", action="store_true", help="Save the Plot")
     args = argparser.parse_args()
     return args, argparser

@@ -14,7 +14,7 @@ from src.models import bitcoin, default_model
 
 
 class CryptoForecast:
-    def __init__(self, epochs, batch_size, ticker, folds, retrain, path, weights, future_days):
+    def __init__(self, epochs, batch_size, ticker, folds, retrain, path, weights, future_days, save, show):
         self.epochs = epochs
         self.batch_size = batch_size
         self.ticker = ticker
@@ -23,6 +23,8 @@ class CryptoForecast:
         self.path = path
         self.weights = weights
         self.future_days = future_days
+        self.save = save
+        self.show = show
 
         self.weight_path = create_cloud_path(self.path, ticker=self.ticker, typeof="weights", filetype="h5")
         self.scaler = MinMaxScaler(feature_range=(0, 1))
